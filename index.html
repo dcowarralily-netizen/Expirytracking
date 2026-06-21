@@ -11,13 +11,15 @@
     <title>Direct Chemist Outlet Warralily - Expiry Tracker Pro</title>
     
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         :root {
             --primary-color: #003399; /* Direct Chemist Blue */
             --accent-color: #ffcc00;  /* Direct Chemist Yellow */
             --danger-color: #dc3545;  /* Red for Delete */
-            --edit-color: #6c757d;    --bg-color: #f4f6f9;
+            --edit-color: #6c757d;    
+            --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --text-color: #333333;
             --success-color: #28a745; 
@@ -258,10 +260,10 @@
 
             <div class="card">
                 <h2>📦 Product Database Manager</h2>
-                <p style="font-size:12px; color:#666; margin-top:0;">Load your store's CSV report directly into the iPad's system storage to update scanning dictionary records.</p>
+                <p style="font-size:12px; color:#666; margin-top:0;">Load your store's spreadsheet file directly into the iPad's system storage to update scanning dictionary records.</p>
                 <label class="btn-share import-label" style="background-color: #6f42c1; display: block; width: auto; max-width: 100%;">
-                    📥 Load Store Product CSV File
-                    <input type="file" id="csvDatabaseLoader" accept=".csv, text/csv, text/plain, .txt" style="display: none;" onchange="importProductCSVFile(event)">
+                    📥 Load Store Product List (Excel or CSV)
+                    <input type="file" id="csvDatabaseLoader" accept=".csv, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv, text/plain" style="display: none;" onchange="importProductSpreadsheetFile(event)">
                 </label>
                 <div id="dbStatus" style="font-size: 13px; margin-top: 10px; font-weight: bold; color: #555;">
                     Database Status: Loading storage systems...
@@ -288,15 +290,12 @@
 </div>
 
 <script>
-    // System Seed Fallback Dataset Array matching data metrics uploaded
     let productDatabase = {};
-
     let editId = null; 
     let inventory = [];
     let lastScannedCode = "";
     let lastScannedTime = 0;
 
-    // --- IndexedDB Local Core Services Storage Architecture ---
     const DB_NAME = "DCO_Store_Database";
     const STORE_NAME = "product_lookup";
 
@@ -335,267 +334,95 @@
                     document.getElementById("dbStatus").innerHTML = `✅ Ready: ${records.length} product records active.`;
                     document.getElementById("dbStatus").style.color = "var(--success-color)";
                 } else {
-                    document.getElementById("dbStatus").innerHTML = "ℹ️ Database Empty. Please tap the purple button to ingest your store's CSV list.";
+                    document.getElementById("dbStatus").innerHTML = "ℹ️ Database Empty. Please tap the purple button to ingest your store's spreadsheet file.";
                     document.getElementById("dbStatus").style.color = "#856404";
                 }
             };
         });
     }
 
-    function importProductCSVFile(event) {
+    // --- High-Performance Spreadsheet File Ingestion Core ---
+    function importProductSpreadsheetFile(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         const statusDiv = document.getElementById("dbStatus");
-        statusDiv.innerHTML = "⏳ Scanning file rows and matching column arrays...";
+        statusDiv.innerHTML = "⏳ Initializing spreadsheet ingestion engine...";
         statusDiv.style.color = "var(--primary-color)";
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            const text = e.target.result;
-            
-            // --- Bulletproof Stream-Level CSV Core Token Parser ---
-            const rows = [];
-            let currentRow = [];
-            let currentCell = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < text.length; i++) {
-                const char = text[i];
-                const nextChar = text[i+1];
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
                 
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        currentCell += '"';
-                        i++; 
-                    } else {
-                        inQuotes = !inQuotes;
+                // Convert spreadsheet to a safe matrix array of rows
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                // Track where the header columns actually live (skips any top whitespace)
+                let headerIdx = -1;
+                for (let i = 0; i < rows.length; i++) {
+                    if (!rows[i]) continue;
+                    const hasDescription = rows[i].some(cell => cell && cell.toString().toLowerCase().includes("description"));
+                    const hasBarcode = rows[i].some(cell => cell && cell.toString().toLowerCase().includes("barcode"));
+                    if (hasDescription && hasBarcode) {
+                        headerIdx = i;
+                        break;
                     }
-                } else if (char === ',' && !inQuotes) {
-                    currentRow.push(currentCell.trim());
-                    currentCell = '';
-                } else if ((char === '\r' || char === '\n') && !inQuotes) {
-                    if (char === '\r' && nextChar === '\n') { i++; }
-                    currentRow.push(currentCell.trim());
-                    if (currentRow.length > 0 && currentRow.some(c => c !== '')) {
-                        rows.push(currentRow);
-                    }
-                    currentRow = [];
-                    currentCell = '';
-                } else {
-                    currentCell += char;
                 }
-            }
-            if (currentCell || currentRow.length > 0) {
-                currentRow.push(currentCell.trim());
-                rows.push(currentRow);
-            }
-
-            // --- Dynamic Dynamic Column Tracking Logic Matrix ---
-            let headerIdx = -1;
-            for (let i = 0; i < rows.length; i++) {
-                const hasDescription = rows[i].some(cell => cell.toLowerCase().includes("description"));
-                const hasBarcode = rows[i].some(cell => cell.toLowerCase().includes("barcode"));
-                if (hasDescription && hasBarcode) {
-                    headerIdx = i;
-                    break;
-                }
-            }
-            
-            if (headerIdx === -1) {
-                alert("Error: Could not locate required data column coordinates ('Description' and 'Barcode') in this CSV file structure.");
-                statusDiv.innerHTML = "⚠️ Import failed: Header row mismatch.";
-                statusDiv.style.color = "var(--danger-color)";
-                return;
-            }
-
-            const headerRow = rows[headerIdx];
-            const descCol = headerRow.findIndex(cell => cell.toLowerCase().includes("description"));
-            const barcodeCol = headerRow.findIndex(cell => cell.toLowerCase().includes("barcode"));
-            const costCol = headerRow.findIndex(cell => cell.toLowerCase().includes("unit") && cell.toLowerCase().includes("cost"));
-            const sellCol = headerRow.findIndex(cell => cell.toLowerCase().includes("sell") && cell.toLowerCase().includes("inc"));
-
-            const parsedData = {};
-            let count = 0;
-
-            for (let i = headerIdx + 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length <= Math.max(descCol, barcodeCol)) continue;
-
-                const rawBarcode = row[barcodeCol];
-                const description = row[descCol];
-
-                if (!rawBarcode || !description) continue;
-
-                // Strip scientific notations, dots, or spaces out of retail registers
-                const barcode = rawBarcode.replace(/[^0-9]/g, '').trim();
-                if (!barcode) continue;
-
-                const rawCost = costCol !== -1 ? row[costCol] : "0";
-                const rawSell = sellCol !== -1 ? row[sellCol] : "0";
-
-                // Strip dollar signs or formatting artifacts safely
-                const cost = rawCost.replace(/[^0-9.]/g, '') || "0";
-                const sell = rawSell.replace(/[^0-9.]/g, '') || "0";
-
-                parsedData[barcode] = { name: description, cost, sell };
-                count++;
-            }
-
-            // Ingest direct tracking targets onto local device structures
-            initIndexedDB().then(db => {
-                if (!db) {
-                    productDatabase = parsedData;
-                    statusDiv.innerHTML = `✅ Loaded ${count} items to layout cache.`;
+                
+                if (headerIdx === -1) {
+                    alert("Error: Could not locate columns named 'Description' and 'Barcode' inside this file structure.");
+                    statusDiv.innerHTML = "⚠️ Import failed: Missing key headings.";
+                    statusDiv.style.color = "var(--danger-color)";
                     return;
                 }
-                const transaction = db.transaction(STORE_NAME, "readwrite");
-                const store = transaction.objectStore(STORE_NAME);
-                
-                store.clear().onsuccess = function() {
-                    for (const barcode in parsedData) {
-                        store.put({
-                            barcode: barcode,
-                            name: parsedData[barcode].name,
-                            cost: parsedData[barcode].cost,
-                            sell: parsedData[barcode].sell
-                        });
+
+                const headerRow = rows[headerIdx].map(cell => cell ? cell.toString().trim() : "");
+                const descCol = headerRow.findIndex(cell => cell.toLowerCase().includes("description"));
+                const barcodeCol = headerRow.findIndex(cell => cell.toLowerCase().includes("barcode"));
+                const costCol = headerRow.findIndex(cell => cell.toLowerCase().includes("unit") && cell.toLowerCase().includes("cost"));
+                const sellCol = headerRow.findIndex(cell => cell.toLowerCase().includes("sell") && cell.toLowerCase().includes("inc"));
+
+                const parsedData = {};
+                let count = 0;
+
+                for (let i = headerIdx + 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length <= Math.max(descCol, barcodeCol)) continue;
+
+                    const rawBarcode = row[barcodeCol];
+                    const description = row[descCol];
+
+                    if (!rawBarcode || !description) continue;
+
+                    // Clean up cell values securely
+                    const barcode = rawBarcode.toString().replace(/[^0-9]/g, '').trim();
+                    if (!barcode) continue;
+
+                    const rawCost = (costCol !== -1 && row[costCol] !== undefined) ? row[costCol].toString() : "0";
+                    const rawSell = (sellCol !== -1 && row[sellCol] !== undefined) ? row[sellCol].toString() : "0";
+
+                    const cost = rawCost.replace(/[^0-9.]/g, '') || "0";
+                    const sell = rawSell.replace(/[^0-9.]/g, '') || "0";
+
+                    parsedData[barcode] = { name: description.toString().trim(), cost, sell };
+                    count++;
+                }
+
+                // Push datasets into iPad offline local architecture structures
+                initIndexedDB().then(db => {
+                    if (!db) {
+                        productDatabase = parsedData;
+                        statusDiv.innerHTML = `✅ Loaded ${count} items to layout cache.`;
+                        return;
                     }
-                };
-
-                transaction.oncomplete = function() {
-                    productDatabase = parsedData;
-                    statusDiv.innerHTML = `✅ Success: ${count} items active.`;
-                    statusDiv.style.color = "var(--success-color)";
-                    alert(`Successfully loaded ${count} pharmacy data records! Try scanning an item now.`);
-                    renderExpiryReport();
-                };
-            });
-        };
-        reader.readAsText(file);
-    }
-
-    // --- Barcode Camera Scanning Core Engine Logic ---
-    function startBarcodeScanner() {
-        const statusDiv = document.getElementById("scannerStatus");
-        const html5QrcodeScanner = new Html5Qrcode("interactive-reader");
-        
-        const config = { 
-            fps: 15, 
-            qrbox: function(width, height) {
-                return { width: width * 0.8, height: height * 0.4 }; 
-            },
-            aspectRatio: 1.0
-        };
-
-        html5QrcodeScanner.start(
-            { facingMode: "environment" }, 
-            config,
-            onScanSuccess,
-            onScanFailure
-        ).then(() => {
-            statusDiv.innerHTML = "🎯 Scanner Active. Frame barcode inside target area.";
-            statusDiv.style.backgroundColor = "#d4edda";
-            statusDiv.style.color = "#155724";
-        }).catch((err) => {
-            statusDiv.innerHTML = "⚠️ Camera Blocked. Please grant camera access permissions to Safari.";
-            statusDiv.style.backgroundColor = "#f8d7da";
-            statusDiv.style.color = "#721c24";
-        });
-    }
-
-    function onScanSuccess(decodedText, decodedResult) {
-        const now = Date.now();
-        if (decodedText === lastScannedCode && (now - lastScannedTime < 2500)) {
-            return; 
-        }
-
-        lastScannedCode = decodedText;
-        lastScannedTime = now;
-        playBeepTone();
-
-        const nameField = document.getElementById("prodName");
-        const statusDiv = document.getElementById("scannerStatus");
-        
-        const resultBox = document.getElementById("scanResultBox");
-        const resName = document.getElementById("resName");
-        const resBarcode = document.getElementById("resBarcode");
-        const resCost = document.getElementById("resCost");
-        const resSell = document.getElementById("resSell");
-
-        // Strip non-numerical metrics for reliable dictionary matching
-        const cleanScannedCode = decodedText.replace(/[^0-9]/g, '').trim();
-        const match = productDatabase[cleanScannedCode];
-        const currentForm = document.getElementById("expiryForm");
-
-        if (match) {
-            const costNum = parseFloat(match.cost);
-            const sellNum = parseFloat(match.sell);
-            const costFormatted = isNaN(costNum) ? match.cost : "$" + costNum.toFixed(2);
-            const sellFormatted = isNaN(sellNum) ? match.sell : "$" + sellNum.toFixed(2);
-
-            nameField.value = match.name;
-            
-            resName.innerText = match.name;
-            resBarcode.innerText = decodedText;
-            resCost.innerText = costFormatted;
-            resSell.innerText = sellFormatted;
-            resultBox.style.display = "block";
-
-            statusDiv.innerHTML = `✅ Found: ${match.name}`;
-            statusDiv.style.backgroundColor = "#d4edda";
-            statusDiv.style.color = "#155724";
-            
-            currentForm.dataset.scannedCost = match.cost;
-            currentForm.dataset.scannedSell = match.sell;
-
-            document.getElementById("prodExpiry").focus();
-        } else {
-            nameField.value = `Unknown Product (Barcode: ${decodedText})`;
-            
-            resName.innerText = "Unknown Product";
-            resBarcode.innerText = decodedText;
-            resCost.innerText = "N/A";
-            resSell.innerText = "N/A";
-            resultBox.style.display = "block";
-
-            statusDiv.innerHTML = `❓ Barcode unrecognized (${decodedText}). Name autofilled.`;
-            statusDiv.style.backgroundColor = "#fff3cd";
-            statusDiv.style.color = "#856404";
-            
-            currentForm.dataset.scannedCost = "0";
-            currentForm.dataset.scannedSell = "0";
-            nameField.focus();
-        }
-    }
-
-    function onScanFailure(error) {}
-
-    function playBeepTone() {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 880; 
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.12);
-        } catch(e) {}
-    }
-
-    // --- Standard Inventory Engine Operations ---
-    function loadInventory() {
-        try {
-            const savedData = localStorage.getItem('dco_warralily_final_storage');
-            if (savedData) inventory = JSON.parse(savedData);
-        } catch (error) {}
-    }
-
-    function saveInventory() {
-        try { localStorage.setItem('dco_warralily_final_storage', JSON.stringify(inventory)); } catch (error) {}
-    }
-
-    const form = document.getElementById('expiryForm
+                    const transaction = db.transaction(STORE_NAME, "readwrite");
+                    const store = transaction.objectStore(STORE_NAME);
+                    
+                    store.clear().onsuccess = function() {
+                        for (const barcode in parsedData) {
+                            store.put({
+                                barcode: barcode
