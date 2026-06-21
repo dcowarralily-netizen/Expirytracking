@@ -2,101 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCO Expiry Tracker Pro</title>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
     <style>
-        :root { --primary: #003399; --accent: #ffcc00; --bg: #f4f6f9; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        header { background: var(--primary); color: white; padding: 20px; border-radius: 8px; text-align: center; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #scanner-container { width: 100%; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
-        .result-box { background: #e0f2fe; padding: 15px; border-left: 5px solid var(--primary); margin-top: 15px; }
-        .form-group { margin-bottom: 15px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        body { font-family: sans-serif; background: #f4f6f9; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #003399; color: white; padding: 12px; width: 100%; border: none; border-radius: 4px; cursor: pointer; }
+        #scanner-container { width: 100%; }
+        .inv-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header><h1>Direct Chemist Outlet</h1><p>Expiry Tracker & Inventory</p></header>
-
     <div class="card">
-        <h2>📷 Live Scanner</h2>
+        <h2>📷 Scan Item</h2>
         <div id="scanner-container"></div>
-        <div id="scanResult" class="result-box" style="display:none;">
-            <strong>Product:</strong> <span id="prodName"></span><br>
-            <strong>Barcode:</strong> <span id="prodBarcode"></span>
-        </div>
     </div>
 
     <div class="card">
-        <h2>📦 Load Product Database</h2>
-        <input type="file" id="dbLoader" accept=".xlsx, .xls, .csv" onchange="loadDatabase(event)">
-        <p id="dbStatus" style="font-size: 14px; color: #666; margin-top: 10px;">Status: No database loaded.</p>
+        <h2>📦 Load Database</h2>
+        <input type="file" id="dbLoader" accept=".xlsx, .xls, .csv">
+        <p id="dbStatus">Status: No database loaded.</p>
     </div>
 
     <div class="card">
         <h2>📝 Add to Inventory</h2>
-        <div class="form-group"><input type="text" id="manualName" placeholder="Product Name"></div>
-        <div class="form-group"><input type="month" id="manualExpiry"></div>
-        <button onclick="saveItem()">Add to Inventory List</button>
+        <input type="text" id="prodName" placeholder="Product Name">
+        <input type="number" id="prodQty" placeholder="Quantity" value="1">
+        <input type="month" id="prodExpiry">
+        <button onclick="saveItem()">Add to Inventory</button>
+    </div>
+
+    <div class="card">
+        <h2>📋 Current Inventory</h2>
+        <div id="inventoryList"></div>
+        <button onclick="clearInventory()" style="background:#dc3545; margin-top:10px;">Clear List</button>
     </div>
 </div>
 
 <script>
     let productDatabase = {};
+    let inventory = JSON.parse(localStorage.getItem('dco_inventory') || '[]');
 
-    // 1. IMPROVED EXCEL/CSV LOADER
-    function loadDatabase(event) {
-        const file = event.target.files[0];
+    // Load Excel Data
+    document.getElementById('dbLoader').addEventListener('change', (e) => {
         const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-            let dIdx = -1, bIdx = -1;
-            // Search first 5 rows for headers
-            for (let i = 0; i < Math.min(rows.length, 5); i++) {
-                const row = rows[i].map(c => String(c).toLowerCase());
-                dIdx = row.findIndex(c => c.includes("desc") || c.includes("name") || c.includes("item"));
-                bIdx = row.findIndex(c => c.includes("bar") || c.includes("ean") || c.includes("code"));
-                if (dIdx !== -1 && bIdx !== -1) {
-                    for (let j = i + 1; j < rows.length; j++) {
-                        if (rows[j][bIdx]) {
-                            let bc = String(rows[j][bIdx]).split('.')[0].replace(/[^0-9]/g, '');
-                            productDatabase[bc] = rows[j][dIdx];
-                        }
-                    }
-                    document.getElementById("dbStatus").innerText = "✅ Database loaded successfully.";
-                    return;
+        reader.onload = (ev) => {
+            const data = new Uint8Array(ev.target.result);
+            const wb = XLSX.read(data, {type: 'array'});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, {header: 1});
+            
+            // Logic: Assume headers exist. Search for columns named "Description/Name" and "Barcode"
+            // This is more robust: it looks for indices of headers
+            const headerRow = rows[0].map(h => String(h).toLowerCase());
+            const nameIdx = headerRow.findIndex(h => h.includes('desc') || h.includes('name'));
+            const barIdx = headerRow.findIndex(h => h.includes('bar') || h.includes('ean') || h.includes('upc') || h.includes('code'));
+            
+            for(let i = 1; i < rows.length; i++) {
+                if(rows[i][barIdx]) {
+                    // Clean barcode: remove non-numeric, handle leading zeros
+                    let b = String(rows[i][barIdx]).replace(/[^0-9]/g, '');
+                    productDatabase[b] = rows[i][nameIdx];
                 }
             }
-            alert("Could not find headers. Ensure columns are named 'Description' and 'Barcode'.");
+            document.getElementById('dbStatus').innerText = "Loaded " + Object.keys(productDatabase).length + " items.";
         };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // 2. SCANNER LOGIC
-    const scanner = new Html5QrcodeScanner("scanner-container", { fps: 10, qrbox: 250 });
-    scanner.render((decodedText) => {
-        const clean = decodedText.replace(/[^0-9]/g, '');
-        const name = productDatabase[clean] || "Unknown Product";
-        document.getElementById("prodName").innerText = name;
-        document.getElementById("prodBarcode").innerText = clean;
-        document.getElementById("manualName").value = name;
-        document.getElementById("scanResult").style.display = "block";
+        reader.readAsArrayBuffer(e.target.files[0]);
     });
 
-    function saveItem() { alert("Item added to log (Integration pending storage setup)"); }
-</script>
+    // Scanner
+    const scanner = new Html5QrcodeScanner("scanner-container", { fps: 10, qrbox: 250 });
+    scanner.render((text) => {
+        const clean = text.replace(/[^0-9]/g, '');
+        // We check if it matches exact or if the database code ends with the scanned code
+        const name = productDatabase[clean] || Object.values(productDatabase).find((v, k) => k.endsWith(clean)) || "Unknown Product";
+        document.getElementById('prodName').value = name;
+    });
 
+    function saveItem() {
+        const item = {
+            name: document.getElementById('prodName').value,
+            qty: document.getElementById('prodQty').value,
+            expiry: document.getElementById('prodExpiry').value
+        };
+        inventory.push(item);
+        localStorage.setItem('dco_inventory', JSON.stringify(inventory));
+        renderList();
+    }
+
+    function renderList() {
+        const list = document.getElementById('inventoryList');
+        list.innerHTML = inventory.map(i => `<div class="inv-item"><span>${i.name}</span> <span>Qty: ${i.qty}</span> <span>Exp: ${i.expiry}</span></div>`).join('');
+    }
+
+    function clearInventory() {
+        inventory = [];
+        localStorage.setItem('dco_inventory', '[]');
+        renderList();
+    }
+
+    renderList();
+</script>
 </body>
 </html>
