@@ -1,4 +1,562 @@
-function onScanSuccess(decodedText, decodedResult) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="DCO Expiry">
+
+    <title>Direct Chemist Outlet Warralily - Expiry Tracker Pro</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+
+    <style>
+        :root {
+            --primary-color: #003399; /* Direct Chemist Blue */
+            --accent-color: #ffcc00;  /* Direct Chemist Yellow */
+            --danger-color: #dc3545;  /* Red for Delete */
+            --edit-color: #6c757d;    
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --success-color: #28a745; 
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: env(safe-area-inset-top);
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 { margin: 0; font-size: 24px; }
+        header p { margin: 5px 0 0 0; color: var(--accent-color); font-weight: bold; letter-spacing: 1px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid { grid-template-columns: 1.2fr 1.8fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: var(--primary-color);
+            border-bottom: 2px solid #eef2f5;
+            padding-bottom: 10px;
+        }
+
+        #scanner-container {
+            width: 100%;
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        
+        .scanner-status {
+            font-size: 14px;
+            padding: 12px;
+            background: #eef2f5;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        /* Styling for Barcode Layout UI Elements */
+        .html5-qrcode-element { font-family: inherit; }
+        button.html5-qrcode-element {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border: none !important;
+            padding: 10px 18px !important;
+            border-radius: 6px !important;
+            font-weight: bold !important;
+            font-size: 14px !important;
+            cursor: pointer !important;
+            margin: 6px 4px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+        }
+        button.html5-qrcode-element:hover { opacity: 0.9; }
+        select.html5-qrcode-element {
+            padding: 10px !important;
+            border-radius: 6px !important;
+            border: 2px solid #ccc !important;
+            font-size: 14px !important;
+            background-color: white !important;
+            color: #333 !important;
+            margin: 6px 4px !important;
+            max-width: 100%;
+        }
+        #interactive-reader { border: none !important; padding: 5px !important; }
+        #interactive-reader__dashboard { padding: 10px 0 !important; text-align: center; }
+
+        .scan-result-box {
+            background: #f0f4fc;
+            border-left: 5px solid var(--primary-color);
+            padding: 14px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .scan-result-title { font-weight: bold; color: var(--primary-color); margin-bottom: 8px; font-size: 15px; }
+        .scan-result-row { margin-bottom: 4px; display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .btn-cancel {
+            width: 100%;
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .share-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .btn-share {
+            display: block;
+            text-align: center;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-share.import-label { background-color: #17a2b8; }
+
+        .month-section {
+            margin-bottom: 25px;
+            background: #fff;
+            border-left: 5px solid var(--primary-color);
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .month-header {
+            background-color: #eef2f5;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .product-list { list-style: none; padding: 0; margin: 0; }
+        .product-item {
+            padding: 12px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-info h4 { margin: 0; font-size: 16px; }
+        .product-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .qty { font-weight: bold; color: #555; font-size: 14px; }
+        .action-btns { display: flex; gap: 8px; }
+        
+        .btn-edit, .btn-delete { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; color: white; }
+        .btn-edit { background-color: var(--edit-color); }
+        .btn-delete { background-color: var(--danger-color); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Direct Chemist Outlet</h1>
+        <p>WARRALILY EXPIRY TRACKER & FINANCIAL AUDITOR</p>
+    </header>
+
+    <div class="grid">
+        <div>
+            <div class="card">
+                <h2>📷 Live Barcode Scanner</h2>
+                <div id="scannerStatus" class="scanner-status" style="color: #0369a1; background-color: #e0f2fe;">
+                    Initializing upgraded scanner engine arrays...
+                </div>
+                <div id="scanner-container">
+                    <div id="interactive-reader" style="width: 100%;"></div>
+                </div>
+
+                <div id="scanResultBox" class="scan-result-box" style="display: none;">
+                    <div class="scan-result-title">🛒 Scanned Product Information</div>
+                    <div class="scan-result-row"><strong>Name:</strong> <span id="resName">-</span></div>
+                    <div class="scan-result-row"><strong>Barcode:</strong> <span id="resBarcode">-</span></div>
+                    <div class="scan-result-row"><strong>Wholesale Cost (Ex):</strong> <span id="resCost" style="color:var(--danger-color); font-weight:bold;">-</span></div>
+                    <div class="scan-result-row"><strong>Retail Sell (Inc):</strong> <span id="resSell" style="color:var(--success-color); font-weight:bold;">-</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 id="formTitle">Product Details</h2>
+                <form id="expiryForm">
+                    <div class="form-group">
+                        <label for="prodName">Product Name</label>
+                        <input type="text" id="prodName" placeholder="Scan item or type name manually..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodExpiry">Expiry Date</label>
+                        <input type="month" id="prodExpiry" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodQty">Quantity</label>
+                        <input type="number" id="prodQty" min="1" value="1" required>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-submit">Add to Inventory</button>
+                    <button type="button" id="cancelBtn" class="btn-cancel" style="display: none;" onclick="resetFormState()">Cancel Edit</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>📦 Product Database Manager</h2>
+                <p style="font-size:12px; color:#666; margin-top:0;">Load your store's <strong>productlist.csv</strong> spreadsheet file directly into local disk space.</p>
+                <label class="btn-share import-label" style="background-color: #6f42c1; display: block; width: auto; max-width: 100%;">
+                    📥 Load productlist.csv
+                    <input type="file" id="csvDatabaseLoader" accept=".csv, text/csv" style="display: none;" onchange="importProductSpreadsheetFile(event)">
+                </label>
+                <div id="dbStatus" style="font-size: 13px; margin-top: 10px; font-weight: bold; color: #b45309; background-color: #fef3c7; padding: 8px; border-radius: 4px;">
+                    Database Status: Syncing with storage engines...
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Cross-Device Sync Tools</h2>
+                <div class="share-actions">
+                    <button type="button" class="btn-share" onclick="exportDataFile()">📤 Export Data File</button>
+                    <label class="btn-share import-label">
+                        📥 Import Data File
+                        <input type="file" id="fileImporter" accept=".json" style="display: none;" onchange="importDataFile(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Chronological Expiry Report (By Month)</h2>
+            <div id="expiryReport"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let productDatabase = {};
+    let editId = null; 
+    let inventory = [];
+    let lastScannedCode = "";
+    let lastScannedTime = 0;
+
+    const DB_NAME = "DCO_Store_Database_V3";
+    const STORE_NAME = "product_bundle";
+
+    function initIndexedDB() {
+        return new Promise((resolve) => {
+            try {
+                if (!window.indexedDB) return resolve(null);
+                const request = indexedDB.open(DB_NAME, 3);
+                request.onupgradeneeded = function(e) {
+                    const db = e.target.result;
+                    if (db.objectStoreNames.contains(STORE_NAME)) {
+                        db.deleteObjectStore(STORE_NAME);
+                    }
+                    db.createObjectStore(STORE_NAME, { keyPath: "id" });
+                };
+                request.onsuccess = function(e) { resolve(e.target.result); };
+                request.onerror = function() { resolve(null); };
+            } catch (err) { resolve(null); }
+        });
+    }
+
+    function loadProductDatabaseFromStorage() {
+        const statusDiv = document.getElementById("dbStatus");
+        initIndexedDB().then(db => {
+            if (!db) {
+                statusDiv.innerHTML = "ℹ️ RAM Cache Mode Active. Upload CSV to scan.";
+                statusDiv.style.color = "#1e3a8a"; statusDiv.style.backgroundColor = "#dbeafe";
+                return;
+            }
+            try {
+                const transaction = db.transaction(STORE_NAME, "readonly");
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get("the_database");
+                request.onsuccess = function(e) {
+                    const record = e.target.result;
+                    if (record && record.data) {
+                        productDatabase = record.data;
+                        statusDiv.innerHTML = `✅ Database Loaded: ${record.count.toLocaleString()} items ready offline.`;
+                        statusDiv.style.color = "var(--success-color)"; statusDiv.style.backgroundColor = "#dcfce7";
+                    } else {
+                        statusDiv.innerHTML = "ℹ️ Database Empty. Please upload productlist.csv via the purple button.";
+                        statusDiv.style.color = "#451a03"; statusDiv.style.backgroundColor = "#fef3c7";
+                    }
+                };
+            } catch(err) {
+                statusDiv.innerHTML = "ℹ️ Database ready for initial spreadsheet load.";
+            }
+        });
+    }
+
+    function cleanAndExpandBarcodes(rawBarcode) {
+        if (rawBarcode === undefined || rawBarcode === null) return [];
+        let s = rawBarcode.toString().trim();
+        if (!s) return [];
+        
+        let components = s.split('|');
+        let standardOutputs = [];
+        
+        components.forEach(item => {
+            let p = item.trim();
+            if (/e\+/i.test(p)) {
+                let numericValue = Number(p);
+                if (!isNaN(numericValue)) p = numericValue.toFixed(0);
+            }
+            if (p.includes('.')) p = p.split('.')[0];
+            let cleanDigits = p.replace(/[^0-9a-zA-Z]/g, '').trim();
+            if (cleanDigits) standardOutputs.push(cleanDigits);
+        });
+        
+        return standardOutputs;
+    }
+
+    // ROBUST CHARACTER-TRACKING PARSER
+    function parseCSV(text) {
+        const rows = [];
+        let currentRow = [];
+        let currentField = "";
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            const nextC = text[i + 1];
+            
+            if (c === '"') {
+                if (inQuotes && nextC === '"') {
+                    currentField += '"';
+                    i++; 
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c === ',' && !inQuotes) {
+                currentRow.push(currentField.trim());
+                currentField = "";
+            } else if ((c === '\r' || c === '\n') && !inQuotes) {
+                if (c === '\r' && nextC === '\n') {
+                    i++;
+                }
+                currentRow.push(currentField.trim());
+                if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== "")) {
+                    rows.push(currentRow);
+                }
+                currentRow = [];
+                currentField = "";
+            } else {
+                currentField += c;
+            }
+        }
+        if (currentField || currentRow.length > 0) {
+            currentRow.push(currentField.trim());
+            rows.push(currentRow);
+        }
+        return rows;
+    }
+
+    function importProductSpreadsheetFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const statusDiv = document.getElementById("dbStatus");
+        statusDiv.innerHTML = "⏳ Processing 270,000+ items character-by-character...";
+        statusDiv.style.color = "var(--primary-color)"; statusDiv.style.backgroundColor = "#eff6ff";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                const rows = parseCSV(text);
+                
+                if (rows.length < 2) {
+                    alert("The CSV file seems to be empty or structured incorrectly.");
+                    return;
+                }
+
+                // Dynamically look up header fields regardless of line breaks
+                let headerRow = null;
+                let headerIdx = -1;
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].some(cell => cell.toLowerCase().includes("description")) && 
+                        rows[i].some(cell => cell.toLowerCase().includes("barcode"))) {
+                        headerRow = rows[i].map(c => c.toLowerCase().replace(/[\r\n]/g, ' ').trim());
+                        headerIdx = i;
+                        break;
+                    }
+                }
+
+                if (headerIdx === -1) {
+                    alert("Could not locate columns named 'Description' and 'Barcode'.");
+                    return;
+                }
+
+                const descCol = headerRow.findIndex(c => c.includes("description"));
+                const barcodeCol = headerRow.findIndex(c => c.includes("barcode"));
+                const costCol = headerRow.findIndex(c => c.includes("unit") && c.includes("cost"));
+                const sellCol = headerRow.findIndex(c => c.includes("sell") && c.includes("inc"));
+
+                const parsedData = {};
+                let parsedCount = 0;
+
+                for (let i = headerIdx + 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length <= Math.max(descCol, barcodeCol)) continue;
+
+                    let description = row[descCol];
+                    let rawBarcode = row[barcodeCol];
+                    if (!description || !rawBarcode) continue;
+
+                    let barcodes = cleanAndExpandBarcodes(rawBarcode);
+                    if (barcodes.length === 0) continue;
+
+                    let cost = (costCol !== -1 && row[costCol]) ? row[costCol].replace(/[^0-9.]/g, '') : "0";
+                    let sell = (sellCol !== -1 && row[sellCol]) ? row[sellCol].replace(/[^0-9.]/g, '') : "0";
+
+                    barcodes.forEach(bc => {
+                        parsedData[bc] = { name: description, cost: cost, sell: sell };
+                        parsedCount++;
+                    });
+                }
+
+                commitToLocalDiskStore(parsedData, parsedCount, statusDiv);
+
+            } catch (err) {
+                alert("Error compiling data matrix layout.");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // ATOMIC WRITE TRANSACTION SYSTEM FOR COMPACT DISK ALLOCATION
+    function commitToLocalDiskStore(parsedData, totalItems, statusDiv) {
+        productDatabase = parsedData;
+        initIndexedDB().then(db => {
+            if (!db) {
+                statusDiv.innerHTML = `✅ Session Active: Loaded ${totalItems.toLocaleString()} items to temporary storage.`;
+                return;
+            }
+            try {
+                const transaction = db.transaction(STORE_NAME, "readwrite");
+                const store = transaction.objectStore(STORE_NAME);
+                
+                statusDiv.innerHTML = "⏳ Saving database layout package securely to iPad disk...";
+                store.put({ id: "the_database", data: parsedData, count: totalItems });
+
+                transaction.oncomplete = function() {
+                    statusDiv.innerHTML = `✅ Ingestion Successful: ${totalItems.toLocaleString()} store entries active offline!`;
+                    statusDiv.style.color = "var(--success-color)"; statusDiv.style.backgroundColor = "#dcfce7";
+                    alert(`Successfully mapped and verified ${totalItems.toLocaleString()} product listings!`);
+                };
+                
+                transaction.onerror = function() {
+                    statusDiv.innerHTML = "⚠️ Commit issue. Memory cache remains active.";
+                };
+            } catch(e) {
+                statusDiv.innerHTML = `✅ Active Local Memory Space: ${totalItems.toLocaleString()} items online.`;
+            }
+        });
+    }
+
+    function startBarcodeScanner() {
+        const statusDiv = document.getElementById("scannerStatus");
+        try {
+            if (typeof Html5QrcodeScanner === "undefined") {
+                throw new Error("Scanner script library unverified. Please check network settings.");
+            }
+
+            // High-speed config optimized for rectangular product barcodes
+            const scannerConfig = {
+                fps: 25, 
+                qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    return { width: Math.min(viewfinderWidth * 0.85, 400), height: 160 };
+                },
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            };
+
+            const html5QrcodeScanner = new Html5QrcodeScanner("interactive-reader", scannerConfig, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            
+            statusDiv.innerHTML = "🎯 Scanner Active. Frame item barcode inside target field lines below.";
+            statusDiv.style.backgroundColor = "#dcfce7"; statusDiv.style.color = "#155724";
+        } catch (err) {
+            statusDiv.innerHTML = `❌ Scanner Off: ${err.message}<br><span style='font-size:11px; font-weight:normal;'>Important: Apple iOS requires an encrypted HTTPS connection to authorize native device cameras.</span>`;
+            statusDiv.style.backgroundColor = "#fee2e2"; statusDiv.style.color = "#991b1b";
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
         const now = Date.now();
         if (decodedText === lastScannedCode && (now - lastScannedTime < 2200)) return; 
 
@@ -18,18 +576,12 @@ function onScanSuccess(decodedText, decodedResult) {
 
         let cleanScannedCode = decodedText.replace(/[^0-9a-zA-Z]/g, '').trim();
         
-        // 1. Try an exact match first
+        // Robust pattern lookup fallback matching variations with dropped leading zeros
         let match = productDatabase[cleanScannedCode];
-        
-        // 2. Fallback: If no exact match, extract the last 6 digits and search your database
-        if (!match && cleanScannedCode.length >= 6) {
-            let scannedSuffix = cleanScannedCode.slice(-6); // gets "140341"
-            let fallbackKey = Object.keys(productDatabase).find(key => {
-                return key.endsWith(scannedSuffix);
-            });
-            if (fallbackKey) {
-                match = productDatabase[fallbackKey];
-            }
+        if (!match) {
+            let strippedScanned = cleanScannedCode.replace(/^0+/, '');
+            let fallbackKey = Object.keys(productDatabase).find(key => key.replace(/^0+/, '') === strippedScanned);
+            if (fallbackKey) match = productDatabase[fallbackKey];
         }
 
         if (match) {
@@ -43,7 +595,7 @@ function onScanSuccess(decodedText, decodedResult) {
             resSell.innerText = sellNum > 0 ? "$" + sellNum.toFixed(2) : "$-";
             resultBox.style.display = "block";
 
-            statusDiv.innerHTML = `✅ Item Identified via Deep Suffix Match: ${match.name}`;
+            statusDiv.innerHTML = `✅ Item Identified: ${match.name}`;
             statusDiv.style.backgroundColor = "#dcfce7"; statusDiv.style.color = "#155724";
             
             currentForm.dataset.scannedCost = match.cost;
@@ -64,3 +616,190 @@ function onScanSuccess(decodedText, decodedResult) {
             nameField.focus();
         }
     }
+
+    function onScanFailure(error) {}
+
+    function playBeepTone() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine'; oscillator.frequency.value = 920; 
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
+        } catch(e) {}
+    }
+
+    function loadInventory() {
+        try {
+            const savedData = localStorage.getItem('dco_warralily_final_storage');
+            if (savedData) inventory = JSON.parse(savedData);
+        } catch (error) {}
+    }
+
+    function saveInventory() {
+        try { localStorage.setItem('dco_warralily_final_storage', JSON.stringify(inventory)); } catch (error) {}
+    }
+
+    const form = document.getElementById('expiryForm');
+    const reportContainer = document.getElementById('expiryReport');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('prodName').value.trim();
+        const expiry = document.getElementById('prodExpiry').value; 
+        const qty = parseInt(document.getElementById('prodQty').value);
+
+        if(!name || !expiry || isNaN(qty)) return;
+
+        const cost = form.dataset.scannedCost || "0";
+        const sell = form.dataset.scannedSell || "0";
+
+        if (editId) {
+            const item = inventory.find(i => i.id === editId);
+            if (item) { 
+                Object.assign(item, { name, expiry, qty });
+                if(form.dataset.scannedCost) { item.cost = cost; item.sell = sell; }
+            }
+        } else {
+            inventory.push({ id: Date.now().toString(), name, expiry, qty, cost, sell });
+        }
+        
+        saveInventory(); renderExpiryReport(); resetFormState();
+        document.getElementById("scanResultBox").style.display = "none";
+        document.getElementById("scannerStatus").innerHTML = "🎯 Scanner Running. Ready for next item barcode scan.";
+    });
+
+    function editItem(id) {
+        const item = inventory.find(i => i.id === id);
+        if (!item) return;
+        document.getElementById('prodName').value = item.name;
+        document.getElementById('prodExpiry').value = item.expiry;
+        document.getElementById('prodQty').value = item.qty;
+        
+        form.dataset.scannedCost = item.cost || "0";
+        form.dataset.scannedSell = item.sell || "0";
+
+        if(item.cost && item.cost !== "0") {
+            document.getElementById("resName").innerText = item.name;
+            document.getElementById("resBarcode").innerText = "Logged File Record";
+            document.getElementById("resCost").innerText = "$" + parseFloat(item.cost).toFixed(2);
+            document.getElementById("resSell").innerText = "$" + parseFloat(item.sell).toFixed(2);
+            document.getElementById("scanResultBox").style.display = "block";
+        }
+
+        editId = id;
+        formTitle.innerText = "Modify Scanned Log Entries";
+        submitBtn.innerText = "Save Adjustments";
+        cancelBtn.style.display = "block";
+    }
+
+    function resetFormState() {
+        form.reset(); editId = null;
+        delete form.dataset.scannedCost; delete form.dataset.scannedSell;
+        formTitle.innerText = "Product Details"; submitBtn.innerText = "Add to Inventory";
+        cancelBtn.style.display = "none"; document.getElementById('prodQty').value = 1; 
+    }
+
+    function deleteItem(id) {
+        if(confirm("Confirm asset removal?")) {
+            if (editId === id) resetFormState();
+            inventory = inventory.filter(item => item.id !== id);
+            saveInventory(); renderExpiryReport();
+        }
+    }
+
+    function renderExpiryReport() {
+        reportContainer.innerHTML = '';
+        if (inventory.length === 0) {
+            reportContainer.innerHTML = '<p style="color: #666;">📭 Tracker empty. Scan item shelf barcodes to build logs.</p>';
+            return;
+        }
+        const grouped = {};
+        inventory.forEach(item => {
+            if (!grouped[item.expiry]) grouped[item.expiry] = [];
+            grouped[item.expiry].push(item);
+        });
+
+        Object.keys(grouped).sort().forEach(monthStr => {
+            const [year, month] = monthStr.split('-');
+            const formattedMonth = new Date(year, month - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+            const section = document.createElement('div');
+            section.className = 'month-section';
+
+            let itemsHTML = '';
+            let totalMonthCost = 0;
+
+            grouped[monthStr].forEach(item => {
+                const itemCost = parseFloat(item.cost || 0);
+                const totalItemCostValue = itemCost * item.qty;
+                totalMonthCost += totalItemCostValue;
+
+                let financialSubtitle = '';
+                if(itemCost > 0) {
+                    financialSubtitle = `<span style="font-size:12px; color:#6c757d; display:block; margin-top:2px;">Cost Ex: $${itemCost.toFixed(2)} (Total Value: $${totalItemCostValue.toFixed(2)})</span>`;
+                }
+
+                itemsHTML += `
+                    <li class="product-item">
+                        <div class="product-info">
+                            <h4>${item.name}</h4>
+                            ${financialSubtitle}
+                        </div>
+                        <div class="product-meta">
+                            <span class="qty">Qty: ${item.qty}</span>
+                            <div class="action-btns">
+                                <button class="btn-edit" onclick="editItem('${item.id}')">Edit</button>
+                                <button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </li>`;
+            });
+
+            const valueHeaderMarkup = totalMonthCost > 0 ? ` | Wholesale Value: $${totalMonthCost.toFixed(2)}` : '';
+
+            section.innerHTML = `
+                <div class="month-header">
+                    <span>📅 ${formattedMonth}</span>
+                    <span>(${grouped[monthStr].length} items${valueHeaderMarkup})</span>
+                </div>
+                <ul class="product-list">${itemsHTML}</ul>`;
+            reportContainer.appendChild(section);
+        });
+    }
+
+    function exportDataFile() {
+        if (inventory.length === 0) return alert("Inventory empty!");
+        const dataBlob = new Blob([JSON.stringify(inventory, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(dataBlob);
+        a.download = `dco_expiry_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
+
+    function importDataFile(event) {
+        if (!confirm("Overwrite current view metrics list?")) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                inventory = JSON.parse(e.target.result);
+                saveInventory(); renderExpiryReport(); resetFormState();
+                alert("✅ Sync verification file imported successfully!");
+            } catch (err) { alert("Invalid file configuration structure."); }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    loadInventory();
+    loadProductDatabaseFromStorage();
+    renderExpiryReport();
+    
+    setTimeout(startBarcodeScanner, 1200);
+</script>
+
+</body>
+</html>
