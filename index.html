@@ -4,16 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <!-- Apple Home Screen Full-Screen Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="DCO Expiry">
 
     <title>Direct Chemist Outlet Warralily - Expiry Tracker Pro</title>
     
-    <!-- Include the Barcode Scanner Engine via secure CDN -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Include SheetJS Engine to natively read Excel (.xlsx) and CSV files on iPad -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -92,16 +89,17 @@
         }
         
         .scanner-status {
-            font-size: 13px;
-            padding: 8px;
+            font-size: 14px;
+            padding: 12px;
             background: #eef2f5;
             border-radius: 4px;
             margin-bottom: 15px;
             text-align: center;
             font-weight: bold;
+            line-height: 1.4;
         }
 
-        /* Professional Custom Styling for the Upgraded Barcode UI Elements */
+        /* Professional Custom Styling for the Barcode UI Elements */
         .html5-qrcode-element {
             font-family: inherit;
         }
@@ -240,9 +238,7 @@
     </header>
 
     <div class="grid">
-        <!-- Left Column: Camera Scanner, Live Readouts, Form Data Entry -->
         <div>
-            <!-- Live Scanner Window Card -->
             <div class="card">
                 <h2>📷 Live Barcode Scanner</h2>
                 <div id="scannerStatus" class="scanner-status" style="color: #0369a1; background-color: #e0f2fe;">
@@ -252,7 +248,6 @@
                     <div id="interactive-reader" style="width: 100%;"></div>
                 </div>
 
-                <!-- Hidden by default, unrolls smoothly when item matches database -->
                 <div id="scanResultBox" class="scan-result-box" style="display: none;">
                     <div class="scan-result-title">🛒 Scanned Product Information</div>
                     <div class="scan-result-row"><strong>Name:</strong> <span id="resName">-</span></div>
@@ -262,7 +257,6 @@
                 </div>
             </div>
 
-            <!-- Inventory Entry Input Card Form -->
             <div class="card">
                 <h2 id="formTitle">Product Details</h2>
                 <form id="expiryForm">
@@ -283,7 +277,6 @@
                 </form>
             </div>
 
-            <!-- Product Database Management Administration Ingest System -->
             <div class="card">
                 <h2>📦 Product Database Manager</h2>
                 <p style="font-size:12px; color:#666; margin-top:0;">Load your store's spreadsheet file directly into the iPad's system storage to update scanning dictionary records.</p>
@@ -296,7 +289,6 @@
                 </div>
             </div>
 
-            <!-- Sync Tools -->
             <div class="card">
                 <h2>Cross-Device Sync Tools</h2>
                 <div class="share-actions">
@@ -309,7 +301,6 @@
             </div>
         </div>
 
-        <!-- Right Column: Expiry Output List Reporting Display Elements -->
         <div class="card">
             <h2>Chronological Expiry Report (By Month)</h2>
             <div id="expiryReport"></div>
@@ -327,14 +318,13 @@
     const DB_NAME = "DCO_Store_Database_V2";
     const STORE_NAME = "product_lookup";
 
-    // Fast-fail check wrapper to keep iPad from locking up if storage permissions are restricted
     function initIndexedDB() {
         return new Promise((resolve) => {
             let hasTimedOut = false;
             const timer = setTimeout(() => {
                 hasTimedOut = true;
                 resolve(null);
-            }, 800); // Strict cutoff window to drop loops on sandboxed iOS profiles
+            }, 800);
 
             try {
                 if (!window.indexedDB) {
@@ -372,7 +362,6 @@
         
         initIndexedDB().then(db => {
             if (!db) {
-                // Instantly unlocks the GUI interface to use memory tracking fallback
                 statusDiv.innerHTML = "ℹ️ Mode: Cloud Sandbox / Memory Cache Active. Tap purple button to upload data file.";
                 statusDiv.style.color = "#1e3a8a";
                 statusDiv.style.backgroundColor = "#dbeafe";
@@ -417,7 +406,7 @@
         });
     }
 
-    // --- High-Performance Spreadsheet File Ingestion Core ---
+    // --- HIGH-PERFORMANCE SPREADSHEET FILE INGESTION CORE WITH SCIENTIFIC FIX ---
     function importProductSpreadsheetFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -469,12 +458,25 @@
                     const row = rows[i];
                     if (!row || row.length <= Math.max(descCol, barcodeCol)) continue;
 
-                    const rawBarcode = row[barcodeCol];
+                    let rawBarcode = row[barcodeCol];
                     const description = row[descCol];
 
-                    if (!rawBarcode || !description) continue;
+                    if (rawBarcode === undefined || rawBarcode === null || !description) continue;
 
-                    const barcode = rawBarcode.toString().replace(/[^0-9]/g, '').trim();
+                    let barcodeStr = rawBarcode.toString().trim();
+                    
+                    if (barcodeStr.toLowerCase().includes('e')) {
+                        let num = Number(barcodeStr);
+                        if (!isNaN(num)) {
+                            barcodeStr = num.toFixed(0);
+                        }
+                    }
+                    
+                    if (barcodeStr.includes('.')) {
+                        barcodeStr = barcodeStr.split('.')[0];
+                    }
+                    
+                    const barcode = barcodeStr.replace(/[^0-9]/g, '').trim();
                     if (!barcode) continue;
 
                     const rawCost = (costCol !== -1 && row[costCol] !== undefined) ? row[costCol].toString() : "0";
@@ -536,30 +538,41 @@
         reader.readAsArrayBuffer(file);
     }
 
-    // --- Upgraded Resilient Barcode Camera Scanning Core Engine Logic ---
+    // --- FIXED: Self-Healing Upgraded Camera Scanning Engine Logic ---
     function startBarcodeScanner() {
         const statusDiv = document.getElementById("scannerStatus");
         
-        const scannerConfig = {
-            fps: 20,
-            qrbox: { width: 300, height: 120 }, 
-            rememberLastUsedCamera: true,
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true 
+        try {
+            // Defensive validation to ensure library loaded correctly
+            if (typeof Html5QrcodeScanner === "undefined") {
+                throw new Error("The barcode script library could not be fetched by your iPad browser. Verify internet connectivity.");
             }
-        };
 
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "interactive-reader", 
-            scannerConfig, 
-            /* verbose= */ false
-        );
-        
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-        
-        statusDiv.innerHTML = "🎯 Scanner Engine Active. Tap options inside the frame below to switch lenses.";
-        statusDiv.style.backgroundColor = "#dcfce7";
-        statusDiv.style.color = "#155724";
+            const scannerConfig = {
+                fps: 20,
+                qrbox: { width: 280, height: 130 }, 
+                rememberLastUsedCamera: true
+            };
+
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "interactive-reader", 
+                scannerConfig, 
+                /* verbose= */ false
+            );
+            
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            
+            statusDiv.innerHTML = "🎯 Scanner Engine Active. Point camera at an item barcode or select lens input below.";
+            statusDiv.style.backgroundColor = "#dcfce7";
+            statusDiv.style.color = "#155724";
+            
+        } catch (err) {
+            // Catches iPad configuration, privacy blocks, or script errors cleanly without freezing
+            statusDiv.innerHTML = `❌ Scanner Activation Failure: ${err.message}<br><span style='font-size:11px; font-weight:normal;'>Note: iOS requires the app to run over an HTTPS web connection to use the camera hardware.</span>`;
+            statusDiv.style.backgroundColor = "#fee2e2";
+            statusDiv.style.color = "#991b1b";
+            console.error("Scanner Setup Crash: ", err);
+        }
     }
 
     function onScanSuccess(decodedText, decodedResult) {
@@ -582,8 +595,32 @@
         const resSell = document.getElementById("resSell");
 
         const cleanScannedCode = decodedText.replace(/[^0-9]/g, '').trim();
-        const match = productDatabase[cleanScannedCode];
         const currentForm = document.getElementById("expiryForm");
+
+        // --- MULTI-TIER SMART MATCHING ENGINE CORE ---
+        let match = productDatabase[cleanScannedCode];
+
+        if (!match) {
+            const strippedScanned = cleanScannedCode.replace(/^0+/, ''); 
+            
+            const matchedKey = Object.keys(productDatabase).find(key => {
+                const cleanKey = key.replace(/[^0-9]/g, '');
+                const strippedKey = cleanKey.replace(/^0+/, '');
+
+                if (strippedKey === strippedScanned) return true;
+
+                if (cleanKey.length >= 12 && cleanScannedCode.length >= 12) {
+                    if (cleanKey.endsWith(cleanScannedCode) || cleanScannedCode.endsWith(cleanKey)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            if (matchedKey) {
+                match = productDatabase[matchedKey];
+            }
+        }
 
         if (match) {
             const costNum = parseFloat(match.cost);
@@ -831,7 +868,8 @@
     loadProductDatabaseFromStorage();
     renderExpiryReport();
     
-    setTimeout(startBarcodeScanner, 800);
+    // Slight initialization delay gives iPad engine modules full binding overhead
+    setTimeout(startBarcodeScanner, 1000);
 </script>
 
 </body>
