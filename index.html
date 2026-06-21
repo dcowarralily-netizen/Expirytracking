@@ -12,8 +12,9 @@
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { background: #003399; color: white; padding: 12px; width: 100%; border: none; border-radius: 4px; cursor: pointer; }
-        #scanner-container { width: 100%; }
-        .inv-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
+        .expiry-group { margin-top: 15px; border-top: 2px solid #003399; padding-top: 10px; }
+        .expiry-header { font-weight: bold; color: #003399; margin-bottom: 5px; }
+        .inv-item { padding: 5px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -39,9 +40,9 @@
     </div>
 
     <div class="card">
-        <h2>📋 Current Inventory</h2>
+        <h2>📋 Grouped Inventory</h2>
         <div id="inventoryList"></div>
-        <button onclick="clearInventory()" style="background:#dc3545; margin-top:10px;">Clear List</button>
+        <button onclick="clearInventory()" style="background:#dc3545; margin-top:20px;">Clear All Data</button>
     </div>
 </div>
 
@@ -49,7 +50,6 @@
     let productDatabase = {};
     let inventory = JSON.parse(localStorage.getItem('dco_inventory') || '[]');
 
-    // Load Excel Data
     document.getElementById('dbLoader').addEventListener('change', (e) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -57,16 +57,12 @@
             const wb = XLSX.read(data, {type: 'array'});
             const ws = wb.Sheets[wb.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(ws, {header: 1});
-            
-            // Logic: Assume headers exist. Search for columns named "Description/Name" and "Barcode"
-            // This is more robust: it looks for indices of headers
             const headerRow = rows[0].map(h => String(h).toLowerCase());
             const nameIdx = headerRow.findIndex(h => h.includes('desc') || h.includes('name'));
             const barIdx = headerRow.findIndex(h => h.includes('bar') || h.includes('ean') || h.includes('upc') || h.includes('code'));
             
             for(let i = 1; i < rows.length; i++) {
                 if(rows[i][barIdx]) {
-                    // Clean barcode: remove non-numeric, handle leading zeros
                     let b = String(rows[i][barIdx]).replace(/[^0-9]/g, '');
                     productDatabase[b] = rows[i][nameIdx];
                 }
@@ -76,20 +72,17 @@
         reader.readAsArrayBuffer(e.target.files[0]);
     });
 
-    // Scanner
     const scanner = new Html5QrcodeScanner("scanner-container", { fps: 10, qrbox: 250 });
     scanner.render((text) => {
         const clean = text.replace(/[^0-9]/g, '');
-        // We check if it matches exact or if the database code ends with the scanned code
-        const name = productDatabase[clean] || Object.values(productDatabase).find((v, k) => k.endsWith(clean)) || "Unknown Product";
-        document.getElementById('prodName').value = name;
+        document.getElementById('prodName').value = productDatabase[clean] || "Unknown Product";
     });
 
     function saveItem() {
         const item = {
             name: document.getElementById('prodName').value,
             qty: document.getElementById('prodQty').value,
-            expiry: document.getElementById('prodExpiry').value
+            expiry: document.getElementById('prodExpiry').value || "No Date"
         };
         inventory.push(item);
         localStorage.setItem('dco_inventory', JSON.stringify(inventory));
@@ -98,13 +91,31 @@
 
     function renderList() {
         const list = document.getElementById('inventoryList');
-        list.innerHTML = inventory.map(i => `<div class="inv-item"><span>${i.name}</span> <span>Qty: ${i.qty}</span> <span>Exp: ${i.expiry}</span></div>`).join('');
+        // Grouping logic
+        const grouped = inventory.reduce((acc, item) => {
+            (acc[item.expiry] = acc[item.expiry] || []).push(item);
+            return acc;
+        }, {});
+
+        list.innerHTML = Object.keys(grouped).sort().map(date => `
+            <div class="expiry-group">
+                <div class="expiry-header">${date === "No Date" ? "No Expiry Date" : date}</div>
+                ${grouped[date].map(i => `
+                    <div class="inv-item">
+                        <span>${i.name}</span>
+                        <span>x${i.qty}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `).join('');
     }
 
     function clearInventory() {
-        inventory = [];
-        localStorage.setItem('dco_inventory', '[]');
-        renderList();
+        if(confirm("Clear everything?")) {
+            inventory = [];
+            localStorage.setItem('dco_inventory', '[]');
+            renderList();
+        }
     }
 
     renderList();
