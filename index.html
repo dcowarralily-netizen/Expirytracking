@@ -2,18 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Direct Chemist Outlet Warralily - Expiry Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="DCO Expiry">
+
+    <title>Direct Chemist Outlet Warralily - Expiry Tracker Pro</title>
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
     <style>
         :root {
             --primary-color: #003399; /* Direct Chemist Blue */
             --accent-color: #ffcc00;  /* Direct Chemist Yellow */
             --danger-color: #dc3545;  /* Red for Delete */
-            --edit-color: #6c757d;    /* Muted Grey for Edit */
-            --bg-color: #f4f6f9;
+            --edit-color: #6c757d;    --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --text-color: #333333;
-            --success-color: #28a745; /* Green for Share features */
+            --success-color: #28a745; 
         }
 
         body {
@@ -25,8 +32,9 @@
         }
 
         .container {
-            max-width: 950px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding-top: env(safe-area-inset-top);
         }
 
         header {
@@ -39,17 +47,8 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        header p {
-            margin: 5px 0 0 0;
-            color: var(--accent-color);
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+        header h1 { margin: 0; font-size: 24px; }
+        header p { margin: 5px 0 0 0; color: var(--accent-color); font-weight: bold; letter-spacing: 1px; }
 
         .grid {
             display: grid;
@@ -58,9 +57,7 @@
         }
 
         @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr 1.8fr;
-            }
+            .grid { grid-template-columns: 1.2fr 1.8fr; }
         }
 
         .card {
@@ -79,17 +76,51 @@
             padding-bottom: 10px;
         }
 
-        .form-group {
+        /* Scanner Frame Layout Elements */
+        #scanner-container {
+            width: 100%;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
             margin-bottom: 15px;
+            border: 2px dashed #ccc;
+        }
+        
+        .scanner-status {
+            font-size: 13px;
+            padding: 8px;
+            background: #eef2f5;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
+        /* Scanned Item Dynamic Match Display Box */
+        .scan-result-box {
+            background: #f0f4fc;
+            border-left: 5px solid var(--primary-color);
+            padding: 14px;
+            border-radius: 4px;
+            margin-bottom: 15px;
             font-size: 14px;
         }
+        .scan-result-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .scan-result-row {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 2px;
+        }
 
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
         .form-group input {
             width: 100%;
             padding: 12px;
@@ -104,7 +135,7 @@
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px;
+            padding: 14px;
             border-radius: 4px;
             font-weight: bold;
             cursor: pointer;
@@ -123,14 +154,7 @@
             cursor: pointer;
         }
 
-        /* Sharing Tools Layout Styles */
-        .share-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
+        .share-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .btn-share {
             display: block;
             text-align: center;
@@ -143,21 +167,8 @@
             font-size: 14px;
             cursor: pointer;
             text-decoration: none;
-            box-sizing: border-box;
-            transition: background 0.2s;
         }
-
-        .btn-share:hover {
-            background-color: #1e7e34;
-        }
-
-        .btn-share.import-label {
-            background-color: #17a2b8;
-        }
-
-        .btn-share.import-label:hover {
-            background-color: #117a8b;
-        }
+        .btn-share.import-label { background-color: #17a2b8; }
 
         .month-section {
             margin-bottom: 25px;
@@ -165,7 +176,6 @@
             border-left: 5px solid var(--primary-color);
             border-radius: 0 8px 8px 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            overflow: hidden;
         }
 
         .month-header {
@@ -178,12 +188,7 @@
             justify-content: space-between;
         }
 
-        .product-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
+        .product-list { list-style: none; padding: 0; margin: 0; }
         .product-item {
             padding: 12px 15px;
             border-top: 1px solid #eee;
@@ -191,54 +196,16 @@
             justify-content: space-between;
             align-items: center;
         }
-
-        .product-info h4 {
-            margin: 0;
-            font-size: 16px;
-        }
-
-        .product-meta {
-            text-align: right;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 5px;
-        }
-
-        .qty {
-            font-weight: bold;
-            color: #555;
-            font-size: 14px;
-        }
-
-        .action-btns {
-            display: flex;
-            gap: 8px;
-        }
-
+        .product-info h4 { margin: 0; font-size: 16px; }
+        .product-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .qty { font-weight: bold; color: #555; font-size: 14px; }
+        .action-btns { display: flex; gap: 8px; }
+        
         .btn-edit, .btn-delete {
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            color: white;
+            border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; color: white;
         }
-
         .btn-edit { background-color: var(--edit-color); }
         .btn-delete { background-color: var(--danger-color); }
-
-        .security-alert {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border: 1px solid #ffeeba;
-            font-size: 14px;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -246,23 +213,35 @@
 <div class="container">
     <header>
         <h1>Direct Chemist Outlet</h1>
-        <p>WARRALILY EXPIRY TRACKER</p>
+        <p>WARRALILY EXPIRY TRACKER & FINANCIAL AUDITOR</p>
     </header>
 
-    <div id="storageWarning" class="security-alert">
-        ⚠️ <strong>Notice:</strong> Your browser settings are blocking permanent storage. The application works perfectly right now, but you must use the "Export Data File" button below to save your lists before closing this window!
-    </div>
-
     <div class="grid">
-        <!-- Sidebar Column (Form & Sharing Controls) -->
         <div>
-            <!-- Form Card -->
             <div class="card">
-                <h2 id="formTitle">Add New Stock</h2>
+                <h2>📷 Live Barcode Scanner</h2>
+                <div id="scanner-container">
+                    <div id="interactive-reader" style="width: 100%;"></div>
+                </div>
+                <div id="scannerStatus" class="scanner-status" style="color: #666;">
+                    Starting camera core arrays...
+                </div>
+
+                <div id="scanResultBox" class="scan-result-box" style="display: none;">
+                    <div class="scan-result-title">🛒 Scanned Product Information</div>
+                    <div class="scan-result-row"><strong>Name:</strong> <span id="resName">-</span></div>
+                    <div class="scan-result-row"><strong>Barcode:</strong> <span id="resBarcode">-</span></div>
+                    <div class="scan-result-row"><strong>Wholesale Cost (Ex):</strong> <span id="resCost" style="color:var(--danger-color); font-weight:bold;">-</span></div>
+                    <div class="scan-result-row"><strong>Retail Sell (Inc):</strong> <span id="resSell" style="color:var(--success-color); font-weight:bold;">-</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 id="formTitle">Product Details</h2>
                 <form id="expiryForm">
                     <div class="form-group">
                         <label for="prodName">Product Name</label>
-                        <input type="text" id="prodName" placeholder="e.g., Panadol 500mg" required>
+                        <input type="text" id="prodName" placeholder="Scan item or type name manually..." required>
                     </div>
                     <div class="form-group">
                         <label for="prodExpiry">Expiry Date</label>
@@ -277,17 +256,22 @@
                 </form>
             </div>
 
-            <!-- Inter-device Sharing Card -->
+            <div class="card">
+                <h2>📦 Product Database Manager</h2>
+                <p style="font-size:12px; color:#666; margin-top:0;">Load your store's CSV report directly into the iPad's system storage to update scanning dictionary records.</p>
+                <label class="btn-share import-label" style="background-color: #6f42c1; display: block; width: auto; max-width: 100%;">
+                    📥 Load Store Product CSV File
+                    <input type="file" id="csvDatabaseLoader" accept=".csv" style="display: none;" onchange="importProductCSVFile(event)">
+                </label>
+                <div id="dbStatus" style="font-size: 13px; margin-top: 10px; font-weight: bold; color: #555;">
+                    Database Status: Loading storage systems...
+                </div>
+            </div>
+
             <div class="card">
                 <h2>Cross-Device Sync Tools</h2>
-                <p style="font-size:12px; color:#666; margin:0 0 12px 0; line-height: 1.4;">
-                    Download your data file to move it to a USB drive or email it to another computer, then use Upload to load it on the new device.
-                </p>
                 <div class="share-actions">
-                    <!-- Export Button -->
                     <button type="button" class="btn-share" onclick="exportDataFile()">📤 Export Data File</button>
-                    
-                    <!-- Import Button (Wraps a hidden native file element for cleaner styling) -->
                     <label class="btn-share import-label">
                         📥 Import Data File
                         <input type="file" id="fileImporter" accept=".json" style="display: none;" onchange="importDataFile(event)">
@@ -296,7 +280,6 @@
             </div>
         </div>
 
-        <!-- Main Report Column -->
         <div class="card">
             <h2>Chronological Expiry Report (By Month)</h2>
             <div id="expiryReport"></div>
@@ -305,90 +288,292 @@
 </div>
 
 <script>
+    // System Seed Fallback Dataset Array matching data metrics uploaded
+    let productDatabase = {
+        "9313559140358": { name: "ARTW BIRTHDAY CARD", cost: "1.00", sell: "2.00" },
+        "9310640620027": { name: "GATORADE BLUE BOLT 600ML", cost: "3.90", sell: "3.49" },
+        "9335955000524": { name: "MOOGOO TANNING CREAM 200G", cost: "11.90", sell: "26.18" },
+        "9314807069063": { name: "SAMBUCOL SOOTHING MANUKA HONEY LOZ 16", cost: "4.44", sell: "5.99" },
+        "9335955000012": { name: "MOOGOO SKIN MILK UDDER CREAM 120G", cost: "6.75", sell: "8.70" },
+        "9313820000862": { name: "PEPSI MAX 600ML", cost: "2.58", sell: "3.99" }
+    };
+
     let editId = null; 
     let inventory = [];
+    let lastScannedCode = "";
+    let lastScannedTime = 0;
 
+    // --- IndexedDB Local Core Services Storage Architecture ---
+    const DB_NAME = "DCO_Store_Database";
+    const STORE_NAME = "product_lookup";
+
+    function initIndexedDB() {
+        return new Promise((resolve) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = function(e) {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: "barcode" });
+                }
+            };
+            request.onsuccess = function(e) { resolve(e.target.result); };
+            request.onerror = function() { resolve(null); };
+        });
+    }
+
+    function loadProductDatabaseFromStorage() {
+        initIndexedDB().then(db => {
+            if (!db) return;
+            const transaction = db.transaction(STORE_NAME, "readonly");
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onsuccess = function(e) {
+                const records = e.target.result || [];
+                if (records.length > 0) {
+                    // Overwrite memory dictionary mapping references
+                    productDatabase = {};
+                    records.forEach(item => {
+                        productDatabase[item.barcode] = {
+                            name: item.name,
+                            cost: item.cost,
+                            sell: item.sell
+                        };
+                    });
+                    document.getElementById("dbStatus").innerHTML = `✅ Ready: ${records.length} product records active.`;
+                    document.getElementById("dbStatus").style.color = "var(--success-color)";
+                } else {
+                    document.getElementById("dbStatus").innerHTML = "ℹ️ No custom list loaded. Running on default system dictionary templates.";
+                    document.getElementById("dbStatus").style.color = "#856404";
+                }
+            };
+        });
+    }
+
+    function importProductCSVFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const statusDiv = document.getElementById("dbStatus");
+        statusDiv.innerHTML = "⏳ Parsing layout strings and mapping registers...";
+        statusDiv.style.color = "var(--primary-color)";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r?\n/);
+            
+            let headerIdx = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes("Description") && lines[i].includes("Barcode")) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+            
+            if (headerIdx === -1) {
+                alert("Error: Could not locate standard header rows ('Description' and 'Barcode') inside this CSV file.");
+                statusDiv.innerHTML = "⚠️ Import failed: Header mismatch.";
+                statusDiv.style.color = "var(--danger-color)";
+                return;
+            }
+
+            const parsedData = {};
+            let count = 0;
+
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // Quote-aware string splitter block execution
+                const cells = [];
+                let currentCell = '';
+                let inQuotes = false;
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        cells.push(currentCell.trim());
+                        currentCell = '';
+                    } else {
+                        currentCell += char;
+                    }
+                }
+                cells.push(currentCell.trim());
+
+                if (cells.length >= 2) {
+                    const description = cells[0];
+                    const barcode = cells[1];
+                    const costEx = cells[2] || "0";
+                    const sellInc = cells[4] || "0";
+
+                    if (barcode && description) {
+                        parsedData[barcode] = {
+                            name: description,
+                            cost: costEx,
+                            sell: sellInc
+                        };
+                        count++;
+                    }
+                }
+            }
+
+            // Write structures out to non-volatile local browser database blocks
+            initIndexedDB().then(db => {
+                if (!db) {
+                    productDatabase = parsedData;
+                    statusDiv.innerHTML = `✅ Loaded ${count} items to short-term volatile cache memory.`;
+                    return;
+                }
+                const transaction = db.transaction(STORE_NAME, "readwrite");
+                const store = transaction.objectStore(STORE_NAME);
+                
+                store.clear().onsuccess = function() {
+                    for (const barcode in parsedData) {
+                        store.put({
+                            barcode: barcode,
+                            name: parsedData[barcode].name,
+                            cost: parsedData[barcode].cost,
+                            sell: parsedData[barcode].sell
+                        });
+                    }
+                };
+
+                transaction.oncomplete = function() {
+                    productDatabase = parsedData;
+                    statusDiv.innerHTML = `✅ Success: Imported ${count} products into memory matrix arrays.`;
+                    statusDiv.style.color = "var(--success-color)";
+                    alert(`Successfully imported ${count} pharmacy stock items. Live cost lookups are now online.`);
+                };
+            });
+        };
+        reader.readAsText(file);
+    }
+
+    // --- Barcode Camera Scanning Core Engine Logic ---
+    function startBarcodeScanner() {
+        const statusDiv = document.getElementById("scannerStatus");
+        const html5QrcodeScanner = new Html5Qrcode("interactive-reader");
+        
+        const config = { 
+            fps: 15, 
+            qrbox: function(width, height) {
+                return { width: width * 0.8, height: height * 0.4 }; 
+            },
+            aspectRatio: 1.0
+        };
+
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            statusDiv.innerHTML = "🎯 Scanner Active. Frame barcode inside target area.";
+            statusDiv.style.backgroundColor = "#d4edda";
+            statusDiv.style.color = "#155724";
+        }).catch((err) => {
+            statusDiv.innerHTML = "⚠️ Camera Blocked. Please grant camera access permissions to Safari.";
+            statusDiv.style.backgroundColor = "#f8d7da";
+            statusDiv.style.color = "#721c24";
+        });
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        const now = Date.now();
+        if (decodedText === lastScannedCode && (now - lastScannedTime < 2500)) {
+            return; 
+        }
+
+        lastScannedCode = decodedText;
+        lastScannedTime = now;
+        playBeepTone();
+
+        const nameField = document.getElementById("prodName");
+        const statusDiv = document.getElementById("scannerStatus");
+        
+        const resultBox = document.getElementById("scanResultBox");
+        const resName = document.getElementById("resName");
+        const resBarcode = document.getElementById("resBarcode");
+        const resCost = document.getElementById("resCost");
+        const resSell = document.getElementById("resSell");
+
+        const match = productDatabase[decodedText];
+        const currentForm = document.getElementById("expiryForm");
+
+        if (match) {
+            const costNum = parseFloat(match.cost);
+            const sellNum = parseFloat(match.sell);
+            const costFormatted = isNaN(costNum) ? match.cost : "$" + costNum.toFixed(2);
+            const sellFormatted = isNaN(sellNum) ? match.sell : "$" + sellNum.toFixed(2);
+
+            nameField.value = match.name;
+            
+            // Pop out and inject values into the display box
+            resName.innerText = match.name;
+            resBarcode.innerText = decodedText;
+            resCost.innerText = costFormatted;
+            resSell.innerText = sellFormatted;
+            resultBox.style.display = "block";
+
+            statusDiv.innerHTML = `✅ Found: ${match.name}`;
+            statusDiv.style.backgroundColor = "#d4edda";
+            statusDiv.style.color = "#155724";
+            
+            // Map datasets to form to preserve metrics during inventory item creations
+            currentForm.dataset.scannedCost = match.cost;
+            currentForm.dataset.scannedSell = match.sell;
+
+            document.getElementById("prodExpiry").focus();
+        } else {
+            nameField.value = `Unknown Product (Barcode: ${decodedText})`;
+            
+            resName.innerText = "Unknown Product";
+            resBarcode.innerText = decodedText;
+            resCost.innerText = "N/A";
+            resSell.innerText = "N/A";
+            resultBox.style.display = "block";
+
+            statusDiv.innerHTML = `❓ Barcode unrecognized (${decodedText}). Name autofilled.`;
+            statusDiv.style.backgroundColor = "#fff3cd";
+            statusDiv.style.color = "#856404";
+            
+            currentForm.dataset.scannedCost = "0";
+            currentForm.dataset.scannedSell = "0";
+            nameField.focus();
+        }
+    }
+
+    function onScanFailure(error) {}
+
+    function playBeepTone() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 880; 
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.12);
+        } catch(e) {}
+    }
+
+    // --- Standard Inventory Engine Operations ---
     function loadInventory() {
         try {
             const savedData = localStorage.getItem('dco_warralily_final_storage');
-            if (savedData) {
-                inventory = JSON.parse(savedData);
-            }
-        } catch (error) {
-            console.warn("Storage restricted:", error);
-            document.getElementById('storageWarning').style.display = 'block';
-        }
+            if (savedData) inventory = JSON.parse(savedData);
+        } catch (error) {}
     }
 
     function saveInventory() {
-        try {
-            localStorage.setItem('dco_warralily_final_storage', JSON.stringify(inventory));
-        } catch (error) {
-            console.warn("Could not execute permanent save:", error);
-        }
+        try { localStorage.setItem('dco_warralily_final_storage', JSON.stringify(inventory)); } catch (error) {}
     }
 
-    // --- Core Sharing Logic Engines ---
-    
-    // 1. Export Data to standard file format
-    function exportDataFile() {
-        if (inventory.length === 0) {
-            alert("The inventory list is empty. There is no data to transfer yet!");
-            return;
-        }
-
-        const cleanJsonString = JSON.stringify(inventory, null, 2);
-        const dataBlob = new Blob([cleanJsonString], { type: 'application/json' });
-        const temporaryLink = document.createElement('a');
-        
-        // Formats filename with current date: e.g., dco_expiry_backup_2026-06-20.json
-        const cleanDate = new Date().toISOString().split('T')[0];
-        
-        temporaryLink.href = URL.createObjectURL(dataBlob);
-        temporaryLink.download = `dco_expiry_backup_${cleanDate}.json`;
-        
-        document.body.appendChild(temporaryLink);
-        temporaryLink.click();
-        document.body.removeChild(temporaryLink);
-    }
-
-    // 2. Import Data from a selected file
-    function importDataFile(event) {
-        const selectedFile = event.target.files[0];
-        if (!selectedFile) return;
-
-        // Double check with staff to avoid accidental loss of current workspace items
-        const checkUser = confirm("Warning: Uploading a data file will overwrite any products currently showing on your screen. Do you want to proceed?");
-        if (!checkUser) {
-            event.target.value = ''; // clears file field selection
-            return;
-        }
-
-        const fileReader = new FileReader();
-        fileReader.onload = function(e) {
-            try {
-                const parsedContent = JSON.parse(e.target.result);
-                
-                // Form structural sanity validation
-                if (Array.isArray(parsedContent)) {
-                    inventory = parsedContent;
-                    saveInventory();
-                    renderExpiryReport();
-                    resetFormState();
-                    alert("✅ Success! Your shared inventory data has loaded perfectly.");
-                } else {
-                    alert("❌ Error: The file layout format is unrecognized.");
-                }
-            } catch (err) {
-                alert("❌ Critical Error: Unable to read this file. Make sure it's an unmodified .json backup file.");
-            }
-            event.target.value = ''; // resets input element state
-        };
-        
-        fileReader.readAsText(selectedFile);
-    }
-
-    // --- Interactive Page Controls Logic ---
     const form = document.getElementById('expiryForm');
     const reportContainer = document.getElementById('expiryReport');
     const formTitle = document.getElementById('formTitle');
@@ -397,37 +582,62 @@
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        
         const name = document.getElementById('prodName').value.trim();
         const expiry = document.getElementById('prodExpiry').value; 
         const qty = parseInt(document.getElementById('prodQty').value);
 
         if(!name || !expiry || isNaN(qty)) return;
 
+        const cost = form.dataset.scannedCost || "0";
+        const sell = form.dataset.scannedSell || "0";
+
         if (editId) {
             const item = inventory.find(i => i.id === editId);
-            if (item) {
-                item.name = name;
-                item.expiry = expiry;
-                item.qty = qty;
+            if (item) { 
+                Object.assign(item, { name, expiry, qty });
+                if(form.dataset.scannedCost) {
+                    item.cost = cost;
+                    item.sell = sell;
+                }
             }
         } else {
-            const id = Date.now().toString();
-            inventory.push({ id, name, expiry, qty });
+            inventory.push({ 
+                id: Date.now().toString(), 
+                name, 
+                expiry, 
+                qty,
+                cost: cost,
+                sell: sell
+            });
         }
         
         saveInventory();
         renderExpiryReport();
         resetFormState();
+        
+        document.getElementById("scanResultBox").style.display = "none";
+        document.getElementById("scannerStatus").innerHTML = "🎯 Scanner Active. Frame barcode inside target area.";
+        document.getElementById("scannerStatus").style.backgroundColor = "#d4edda";
+        document.getElementById("scannerStatus").style.color = "#155724";
     });
 
     function editItem(id) {
         const item = inventory.find(i => i.id === id);
         if (!item) return;
-
         document.getElementById('prodName').value = item.name;
         document.getElementById('prodExpiry').value = item.expiry;
         document.getElementById('prodQty').value = item.qty;
+        
+        form.dataset.scannedCost = item.cost || "0";
+        form.dataset.scannedSell = item.sell || "0";
+
+        if(item.cost && item.cost !== "0") {
+            document.getElementById("resName").innerText = item.name;
+            document.getElementById("resBarcode").innerText = "Saved Metric Log";
+            document.getElementById("resCost").innerText = "$" + parseFloat(item.cost).toFixed(2);
+            document.getElementById("resSell").innerText = "$" + parseFloat(item.sell).toFixed(2);
+            document.getElementById("scanResultBox").style.display = "block";
+        }
 
         editId = id;
         formTitle.innerText = "Edit Stock Details";
@@ -438,6 +648,8 @@
     function resetFormState() {
         form.reset();
         editId = null;
+        delete form.dataset.scannedCost;
+        delete form.dataset.scannedSell;
         formTitle.innerText = "Add New Stock";
         submitBtn.innerText = "Add to Inventory";
         cancelBtn.style.display = "none";
@@ -455,40 +667,40 @@
 
     function renderExpiryReport() {
         reportContainer.innerHTML = '';
-
         if (inventory.length === 0) {
-            reportContainer.innerHTML = '<p style="color: #666;">📭 Tracker is empty. Add short-dated products on the left.</p>';
+            reportContainer.innerHTML = '<p style="color: #666;">📭 Tracker empty. Scan shelf stock items to populate logs.</p>';
             return;
         }
-
         const grouped = {};
         inventory.forEach(item => {
-            if (!grouped[item.expiry]) {
-                grouped[item.expiry] = [];
-            }
+            if (!grouped[item.expiry]) grouped[item.expiry] = [];
             grouped[item.expiry].push(item);
         });
 
-        const sortedMonths = Object.keys(grouped).sort();
-
-        sortedMonths.forEach(monthStr => {
-            const dateParts = monthStr.split('-');
-            if (dateParts.length !== 2) return;
-            
-            const year = dateParts[0];
-            const month = dateParts[1];
-            const dateObj = new Date(year, month - 1);
-            const formattedMonth = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
-
+        Object.keys(grouped).sort().forEach(monthStr => {
+            const [year, month] = monthStr.split('-');
+            const formattedMonth = new Date(year, month - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
             const section = document.createElement('div');
             section.className = 'month-section';
 
             let itemsHTML = '';
+            let totalMonthCost = 0;
+
             grouped[monthStr].forEach(item => {
+                const itemCost = parseFloat(item.cost || 0);
+                const totalItemCostValue = itemCost * item.qty;
+                totalMonthCost += totalItemCostValue;
+
+                let financialSubtitle = '';
+                if(itemCost > 0) {
+                    financialSubtitle = `<span style="font-size:12px; color:#6c757d; display:block; margin-top:2px;">Cost Ex: $${itemCost.toFixed(2)} (Total Value: $${totalItemCostValue.toFixed(2)})</span>`;
+                }
+
                 itemsHTML += `
                     <li class="product-item">
                         <div class="product-info">
                             <h4>${item.name}</h4>
+                            ${financialSubtitle}
                         </div>
                         <div class="product-meta">
                             <span class="qty">Qty: ${item.qty}</span>
@@ -497,26 +709,49 @@
                                 <button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button>
                             </div>
                         </div>
-                    </li>
-                `;
+                    </li>`;
             });
+
+            const valueHeaderMarkup = totalMonthCost > 0 ? ` | Cost Ex: $${totalMonthCost.toFixed(2)}` : '';
 
             section.innerHTML = `
                 <div class="month-header">
                     <span>📅 ${formattedMonth}</span>
-                    <span style="font-size: 12px; opacity: 0.7;">(${grouped[monthStr].length} items)</span>
+                    <span>(${grouped[monthStr].length} items${valueHeaderMarkup})</span>
                 </div>
-                <ul class="product-list">
-                    ${itemsHTML}
-                </ul>
-            `;
-
+                <ul class="product-list">${itemsHTML}</ul>`;
             reportContainer.appendChild(section);
         });
     }
 
+    function exportDataFile() {
+        if (inventory.length === 0) return alert("Inventory empty!");
+        const dataBlob = new Blob([JSON.stringify(inventory, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(dataBlob);
+        a.download = `dco_expiry_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
+
+    function importDataFile(event) {
+        if (!confirm("Overwrite current view data list?")) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                inventory = JSON.parse(e.target.result);
+                saveInventory(); renderExpiryReport(); resetFormState();
+                alert("✅ Sync file imported successfully!");
+            } catch (err) { alert("Invalid file structure."); }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    // Launch App System Execution Sequences
     loadInventory();
+    loadProductDatabaseFromStorage();
     renderExpiryReport();
+    
+    setTimeout(startBarcodeScanner, 800);
 </script>
 
 </body>
