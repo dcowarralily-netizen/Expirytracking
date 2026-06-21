@@ -21,12 +21,15 @@ function onScanSuccess(decodedText, decodedResult) {
         // 1. Try an exact match first
         let match = productDatabase[cleanScannedCode];
         
-        // 2. If no exact match, try matching trailing numbers (e.g., matching the last 6+ digits)
+        // 2. Fallback: If no exact match, extract the last 6 digits and search your database
         if (!match && cleanScannedCode.length >= 6) {
+            let scannedSuffix = cleanScannedCode.slice(-6); // gets "140341"
             let fallbackKey = Object.keys(productDatabase).find(key => {
-                return key.endsWith(cleanScannedCode) || cleanScannedCode.endsWith(key.slice(-6));
+                return key.endsWith(scannedSuffix);
             });
-            if (fallbackKey) match = productDatabase[fallbackKey];
+            if (fallbackKey) {
+                match = productDatabase[fallbackKey];
+            }
         }
 
         if (match) {
@@ -40,7 +43,7 @@ function onScanSuccess(decodedText, decodedResult) {
             resSell.innerText = sellNum > 0 ? "$" + sellNum.toFixed(2) : "$-";
             resultBox.style.display = "block";
 
-            statusDiv.innerHTML = `✅ Item Identified via Smart-Match: ${match.name}`;
+            statusDiv.innerHTML = `✅ Item Identified via Deep Suffix Match: ${match.name}`;
             statusDiv.style.backgroundColor = "#dcfce7"; statusDiv.style.color = "#155724";
             
             currentForm.dataset.scannedCost = match.cost;
