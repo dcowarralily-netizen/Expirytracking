@@ -8,41 +8,56 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #f4f6f9; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* Two equal columns */
+            gap: 20px; 
+        }
+        /* Make mobile-friendly: stack on small screens */
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: #003399; color: white; padding: 12px; width: 100%; border: none; border-radius: 4px; cursor: pointer; }
+        button { background: #003399; color: white; padding: 12px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
         .expiry-group { margin-top: 15px; border-top: 2px solid #003399; padding-top: 10px; }
         .expiry-header { font-weight: bold; color: #003399; margin-bottom: 5px; }
         .inv-item { padding: 5px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
+        #scanner-container { width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h2>📷 Scan Item</h2>
-        <div id="scanner-container"></div>
+    <div>
+        <div class="card">
+            <h2>📷 Scan Item</h2>
+            <div id="scanner-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>📦 Load Database</h2>
+            <input type="file" id="dbLoader" accept=".xlsx, .xls, .csv">
+            <p id="dbStatus" style="font-size: 12px; color: #666;">Status: No database loaded.</p>
+        </div>
+
+        <div class="card">
+            <h2>📝 Add to Inventory</h2>
+            <input type="text" id="prodName" placeholder="Product Name">
+            <input type="number" id="prodQty" placeholder="Quantity" value="1">
+            <input type="month" id="prodExpiry">
+            <button onclick="saveItem()">Add to Inventory</button>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>📦 Load Database</h2>
-        <input type="file" id="dbLoader" accept=".xlsx, .xls, .csv">
-        <p id="dbStatus">Status: No database loaded.</p>
-    </div>
-
-    <div class="card">
-        <h2>📝 Add to Inventory</h2>
-        <input type="text" id="prodName" placeholder="Product Name">
-        <input type="number" id="prodQty" placeholder="Quantity" value="1">
-        <input type="month" id="prodExpiry">
-        <button onclick="saveItem()">Add to Inventory</button>
-    </div>
-
-    <div class="card">
-        <h2>📋 Grouped Inventory</h2>
-        <div id="inventoryList"></div>
-        <button onclick="clearInventory()" style="background:#dc3545; margin-top:20px;">Clear All Data</button>
+    <div>
+        <div class="card">
+            <h2>📋 Grouped Inventory</h2>
+            <div id="inventoryList"></div>
+            <button onclick="clearInventory()" style="background:#dc3545; margin-top:20px;">Clear All Data</button>
+        </div>
     </div>
 </div>
 
@@ -57,68 +72,26 @@
             const wb = XLSX.read(data, {type: 'array'});
             const ws = wb.Sheets[wb.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(ws, {header: 1});
-            const headerRow = rows[0].map(h => String(h).toLowerCase());
-            const nameIdx = headerRow.findIndex(h => h.includes('desc') || h.includes('name'));
-            const barIdx = headerRow.findIndex(h => h.includes('bar') || h.includes('ean') || h.includes('upc') || h.includes('code'));
             
-            for(let i = 1; i < rows.length; i++) {
-                if(rows[i][barIdx]) {
-                    let b = String(rows[i][barIdx]).replace(/[^0-9]/g, '');
-                    productDatabase[b] = rows[i][nameIdx];
-                }
+            // Look for header row (contains "Description" or "Barcode")
+            let headerIdx = -1;
+            for(let i=0; i<Math.min(rows.length, 10); i++) {
+                const rowStr = JSON.stringify(rows[i]).toLowerCase();
+                if(rowStr.includes('desc') && rowStr.includes('bar')) { headerIdx = i; break; }
             }
-            document.getElementById('dbStatus').innerText = "Loaded " + Object.keys(productDatabase).length + " items.";
+
+            if(headerIdx !== -1) {
+                const head = rows[headerIdx].map(h => String(h).toLowerCase());
+                const nIdx = head.findIndex(h => h.includes('desc') || h.includes('name'));
+                const bIdx = head.findIndex(h => h.includes('bar') || h.includes('ean') || h.includes('upc') || h.includes('code'));
+                
+                for(let i = headerIdx + 1; i < rows.length; i++) {
+                    if(rows[i][bIdx]) {
+                        let b = String(rows[i][bIdx]).replace(/[^0-9]/g, '');
+                        productDatabase[b] = rows[i][nIdx];
+                    }
+                }
+                document.getElementById('dbStatus').innerText = "✅ Loaded " + Object.keys(productDatabase).length + " items.";
+            }
         };
-        reader.readAsArrayBuffer(e.target.files[0]);
-    });
-
-    const scanner = new Html5QrcodeScanner("scanner-container", { fps: 10, qrbox: 250 });
-    scanner.render((text) => {
-        const clean = text.replace(/[^0-9]/g, '');
-        document.getElementById('prodName').value = productDatabase[clean] || "Unknown Product";
-    });
-
-    function saveItem() {
-        const item = {
-            name: document.getElementById('prodName').value,
-            qty: document.getElementById('prodQty').value,
-            expiry: document.getElementById('prodExpiry').value || "No Date"
-        };
-        inventory.push(item);
-        localStorage.setItem('dco_inventory', JSON.stringify(inventory));
-        renderList();
-    }
-
-    function renderList() {
-        const list = document.getElementById('inventoryList');
-        // Grouping logic
-        const grouped = inventory.reduce((acc, item) => {
-            (acc[item.expiry] = acc[item.expiry] || []).push(item);
-            return acc;
-        }, {});
-
-        list.innerHTML = Object.keys(grouped).sort().map(date => `
-            <div class="expiry-group">
-                <div class="expiry-header">${date === "No Date" ? "No Expiry Date" : date}</div>
-                ${grouped[date].map(i => `
-                    <div class="inv-item">
-                        <span>${i.name}</span>
-                        <span>x${i.qty}</span>
-                    </div>
-                `).join('')}
-            </div>
-        `).join('');
-    }
-
-    function clearInventory() {
-        if(confirm("Clear everything?")) {
-            inventory = [];
-            localStorage.setItem('dco_inventory', '[]');
-            renderList();
-        }
-    }
-
-    renderList();
-</script>
-</body>
-</html>
+        reader.readAsArrayBuffer(
