@@ -327,14 +327,13 @@
     const DB_NAME = "DCO_Store_Database_V2";
     const STORE_NAME = "product_lookup";
 
-    // Fast-fail check wrapper to keep iPad from locking up if storage permissions are restricted
     function initIndexedDB() {
         return new Promise((resolve) => {
             let hasTimedOut = false;
             const timer = setTimeout(() => {
                 hasTimedOut = true;
                 resolve(null);
-            }, 800); // Strict cutoff window to drop loops on sandboxed iOS profiles
+            }, 800);
 
             try {
                 if (!window.indexedDB) {
@@ -372,7 +371,6 @@
         
         initIndexedDB().then(db => {
             if (!db) {
-                // Instantly unlocks the GUI interface to use memory tracking fallback
                 statusDiv.innerHTML = "ℹ️ Mode: Cloud Sandbox / Memory Cache Active. Tap purple button to upload data file.";
                 statusDiv.style.color = "#1e3a8a";
                 statusDiv.style.backgroundColor = "#dbeafe";
@@ -469,12 +467,18 @@
                     const row = rows[i];
                     if (!row || row.length <= Math.max(descCol, barcodeCol)) continue;
 
-                    const rawBarcode = row[barcodeCol];
+                    let rawBarcode = row[barcodeCol];
                     const description = row[descCol];
 
-                    if (!rawBarcode || !description) continue;
+                    if (rawBarcode === undefined || rawBarcode === null || !description) continue;
 
-                    const barcode = rawBarcode.toString().replace(/[^0-9]/g, '').trim();
+                    // Clear out Excel decimal trailing figures (.0) if stored as floats
+                    let barcodeStr = rawBarcode.toString().trim();
+                    if (barcodeStr.includes('.')) {
+                        barcodeStr = barcodeStr.split('.')[0];
+                    }
+                    
+                    const barcode = barcodeStr.replace(/[^0-9]/g, '').trim();
                     if (!barcode) continue;
 
                     const rawCost = (costCol !== -1 && row[costCol] !== undefined) ? row[costCol].toString() : "0";
@@ -582,8 +586,24 @@
         const resSell = document.getElementById("resSell");
 
         const cleanScannedCode = decodedText.replace(/[^0-9]/g, '').trim();
-        const match = productDatabase[cleanScannedCode];
         const currentForm = document.getElementById("expiryForm");
+
+        // --- NEW UPGRADED RESILIENT FUZZY MATCHING LOGIC ---
+        let match = productDatabase[cleanScannedCode];
+
+        // If direct string matching fails, try fuzzy numeric stripping rules (leading zeros bypass)
+        if (!match) {
+            const strippedScanned = cleanScannedCode.replace(/^0+/, ''); // strip scanned leading zeros
+            
+            // Look for any key inside the parsed list that shares the exact same numeric value
+            const matchedKey = Object.keys(productDatabase).find(key => {
+                return key.replace(/^0+/, '') === strippedScanned;
+            });
+            
+            if (matchedKey) {
+                match = productDatabase[matchedKey];
+            }
+        }
 
         if (match) {
             const costNum = parseFloat(match.cost);
