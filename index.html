@@ -3,125 +3,521 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DCO Expiry Pro - Engine V3</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <title>Direct Chemist Outlet Warralily - Expiry Tracker</title>
     <style>
-        :root { --primary: #003399; --danger: #dc3545; }
-        body { font-family: -apple-system, sans-serif; background: #f4f6f9; padding: 15px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .debug-box { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; margin: 10px 0; border-radius: 4px; }
-        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: var(--primary); color: white; padding: 12px; width: 100%; border: none; cursor: pointer; }
-        .inv-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; font-size: 14px; }
+        :root {
+            --primary-color: #003399; /* Direct Chemist Blue */
+            --accent-color: #ffcc00;  /* Direct Chemist Yellow */
+            --danger-color: #dc3545;  /* Red for Delete */
+            --edit-color: #6c757d;    /* Muted Grey for Edit */
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --success-color: #28a745; /* Green for Share features */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            margin: 5px 0 0 0;
+            color: var(--accent-color);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1.8fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: var(--primary-color);
+            border-bottom: 2px solid #eef2f5;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .btn-cancel {
+            width: 100%;
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Sharing Tools Layout Styles */
+        .share-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-share {
+            display: block;
+            text-align: center;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            box-sizing: border-box;
+            transition: background 0.2s;
+        }
+
+        .btn-share:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-share.import-label {
+            background-color: #17a2b8;
+        }
+
+        .btn-share.import-label:hover {
+            background-color: #117a8b;
+        }
+
+        .month-section {
+            margin-bottom: 25px;
+            background: #fff;
+            border-left: 5px solid var(--primary-color);
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .month-header {
+            background-color: #eef2f5;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .product-item {
+            padding: 12px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-info h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .product-meta {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .qty {
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-edit, .btn-delete {
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-edit { background-color: var(--edit-color); }
+        .btn-delete { background-color: var(--danger-color); }
+
+        .security-alert {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeeba;
+            font-size: 14px;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h2>📷 Scanner (High Sensitivity)</h2>
-        <div id="scanner-container" style="width: 100%;"></div>
-        <div class="debug-box" id="rawRead">Scanner waiting...</div>
+    <header>
+        <h1>Direct Chemist Outlet</h1>
+        <p>WARRALILY EXPIRY TRACKER</p>
+    </header>
+
+    <div id="storageWarning" class="security-alert">
+        ⚠️ <strong>Notice:</strong> Your browser settings are blocking permanent storage. The application works perfectly right now, but you must use the "Export Data File" button below to save your lists before closing this window!
     </div>
 
-    <div class="card">
-        <input type="file" id="dbLoader" accept=".csv, .xlsx">
-        <p id="dbStatus" style="font-size: 12px; color: #666;">Load your Excel file to initialize database.</p>
-    </div>
+    <div class="grid">
+        <!-- Sidebar Column (Form & Sharing Controls) -->
+        <div>
+            <!-- Form Card -->
+            <div class="card">
+                <h2 id="formTitle">Add New Stock</h2>
+                <form id="expiryForm">
+                    <div class="form-group">
+                        <label for="prodName">Product Name</label>
+                        <input type="text" id="prodName" placeholder="e.g., Panadol 500mg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodExpiry">Expiry Date</label>
+                        <input type="month" id="prodExpiry" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodQty">Quantity</label>
+                        <input type="number" id="prodQty" min="1" value="1" required>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-submit">Add to Inventory</button>
+                    <button type="button" id="cancelBtn" class="btn-cancel" style="display: none;" onclick="resetFormState()">Cancel Edit</button>
+                </form>
+            </div>
 
-    <div class="card">
-        <input type="text" id="prodName" placeholder="Product Name">
-        <input type="number" id="prodQty" placeholder="Quantity" value="1">
-        <input type="month" id="prodExpiry">
-        <button onclick="saveItem()">Add to Inventory</button>
-    </div>
+            <!-- Inter-device Sharing Card -->
+            <div class="card">
+                <h2>Cross-Device Sync Tools</h2>
+                <p style="font-size:12px; color:#666; margin:0 0 12px 0; line-height: 1.4;">
+                    Download your data file to move it to a USB drive or email it to another computer, then use Upload to load it on the new device.
+                </p>
+                <div class="share-actions">
+                    <!-- Export Button -->
+                    <button type="button" class="btn-share" onclick="exportDataFile()">📤 Export Data File</button>
+                    
+                    <!-- Import Button (Wraps a hidden native file element for cleaner styling) -->
+                    <label class="btn-share import-label">
+                        📥 Import Data File
+                        <input type="file" id="fileImporter" accept=".json" style="display: none;" onchange="importDataFile(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
 
-    <div class="card">
-        <div id="inventoryList"></div>
-        <button onclick="clearInventory()" style="background: var(--danger); margin-top:10px;">Reset Data</button>
+        <!-- Main Report Column -->
+        <div class="card">
+            <h2>Chronological Expiry Report (By Month)</h2>
+            <div id="expiryReport"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    let productDatabase = new Map();
-    let inventory = JSON.parse(localStorage.getItem('dco_data') || '[]');
+    let editId = null; 
+    let inventory = [];
 
-    // 1. ROBUST DATA INGESTION
-    document.getElementById('dbLoader').addEventListener('change', (e) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const data = new Uint8Array(ev.target.result);
-            const wb = XLSX.read(data, {type: 'array'});
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(ws, {header: 1});
-            
-            // Search for header row
-            let headerIdx = json.findIndex(row => row.some(cell => String(cell).toLowerCase().includes('barcode')));
-            if(headerIdx === -1) { alert("Headers not found! Ensure your sheet has 'Barcode' and 'Description'."); return; }
-            
-            const cols = json[headerIdx].map(c => String(c).toLowerCase());
-            const bIdx = cols.indexOf('barcode');
-            const dIdx = cols.indexOf('description');
+    function loadInventory() {
+        try {
+            const savedData = localStorage.getItem('dco_warralily_final_storage');
+            if (savedData) {
+                inventory = JSON.parse(savedData);
+            }
+        } catch (error) {
+            console.warn("Storage restricted:", error);
+            document.getElementById('storageWarning').style.display = 'block';
+        }
+    }
 
-            json.slice(headerIdx + 1).forEach(row => {
-                if(row[bIdx]) {
-                    // Store as string, stripping all non-numerics
-                    let b = String(row[bIdx]).replace(/\D/g, '');
-                    productDatabase.set(b, row[dIdx]);
+    function saveInventory() {
+        try {
+            localStorage.setItem('dco_warralily_final_storage', JSON.stringify(inventory));
+        } catch (error) {
+            console.warn("Could not execute permanent save:", error);
+        }
+    }
+
+    // --- Core Sharing Logic Engines ---
+    
+    // 1. Export Data to standard file format
+    function exportDataFile() {
+        if (inventory.length === 0) {
+            alert("The inventory list is empty. There is no data to transfer yet!");
+            return;
+        }
+
+        const cleanJsonString = JSON.stringify(inventory, null, 2);
+        const dataBlob = new Blob([cleanJsonString], { type: 'application/json' });
+        const temporaryLink = document.createElement('a');
+        
+        // Formats filename with current date: e.g., dco_expiry_backup_2026-06-20.json
+        const cleanDate = new Date().toISOString().split('T')[0];
+        
+        temporaryLink.href = URL.createObjectURL(dataBlob);
+        temporaryLink.download = `dco_expiry_backup_${cleanDate}.json`;
+        
+        document.body.appendChild(temporaryLink);
+        temporaryLink.click();
+        document.body.removeChild(temporaryLink);
+    }
+
+    // 2. Import Data from a selected file
+    function importDataFile(event) {
+        const selectedFile = event.target.files[0];
+        if (!selectedFile) return;
+
+        // Double check with staff to avoid accidental loss of current workspace items
+        const checkUser = confirm("Warning: Uploading a data file will overwrite any products currently showing on your screen. Do you want to proceed?");
+        if (!checkUser) {
+            event.target.value = ''; // clears file field selection
+            return;
+        }
+
+        const fileReader = new FileReader();
+        fileReader.onload = function(e) {
+            try {
+                const parsedContent = JSON.parse(e.target.result);
+                
+                // Form structural sanity validation
+                if (Array.isArray(parsedContent)) {
+                    inventory = parsedContent;
+                    saveInventory();
+                    renderExpiryReport();
+                    resetFormState();
+                    alert("✅ Success! Your shared inventory data has loaded perfectly.");
+                } else {
+                    alert("❌ Error: The file layout format is unrecognized.");
                 }
-            });
-            document.getElementById('dbStatus').innerText = `✅ Database Synced: ${productDatabase.size} items.`;
+            } catch (err) {
+                alert("❌ Critical Error: Unable to read this file. Make sure it's an unmodified .json backup file.");
+            }
+            event.target.value = ''; // resets input element state
         };
-        reader.readAsArrayBuffer(e.target.files[0]);
+        
+        fileReader.readAsText(selectedFile);
+    }
+
+    // --- Interactive Page Controls Logic ---
+    const form = document.getElementById('expiryForm');
+    const reportContainer = document.getElementById('expiryReport');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('prodName').value.trim();
+        const expiry = document.getElementById('prodExpiry').value; 
+        const qty = parseInt(document.getElementById('prodQty').value);
+
+        if(!name || !expiry || isNaN(qty)) return;
+
+        if (editId) {
+            const item = inventory.find(i => i.id === editId);
+            if (item) {
+                item.name = name;
+                item.expiry = expiry;
+                item.qty = qty;
+            }
+        } else {
+            const id = Date.now().toString();
+            inventory.push({ id, name, expiry, qty });
+        }
+        
+        saveInventory();
+        renderExpiryReport();
+        resetFormState();
     });
 
-    // 2. HIGH-SENSITIVITY SCANNER
-    const html5QrCode = new Html5Qrcode("scanner-container");
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 15, qrbox: {width: 250, height: 100}, formatsToSupport: [0, 1] }, // 0=QR, 1=AZTEC, or specify EAN_13
-        (decodedText) => {
-            const raw = decodedText.replace(/\D/g, '');
-            document.getElementById('rawRead').innerText = "Raw Read: " + raw;
-            
-            // Advanced Matcher: Check exact, then try trimming
-            let match = productDatabase.get(raw);
-            if(!match) {
-                // Try finding keys that end with the raw string
-                for(let [key, val] of productDatabase) {
-                    if(key.endsWith(raw) || raw.endsWith(key)) { match = val; break; }
-                }
-            }
-            
-            document.getElementById('prodName').value = match || "Not found in database";
+    function editItem(id) {
+        const item = inventory.find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('prodName').value = item.name;
+        document.getElementById('prodExpiry').value = item.expiry;
+        document.getElementById('prodQty').value = item.qty;
+
+        editId = id;
+        formTitle.innerText = "Edit Stock Details";
+        submitBtn.innerText = "Save Changes";
+        cancelBtn.style.display = "block";
+    }
+
+    function resetFormState() {
+        form.reset();
+        editId = null;
+        formTitle.innerText = "Add New Stock";
+        submitBtn.innerText = "Add to Inventory";
+        cancelBtn.style.display = "none";
+        document.getElementById('prodQty').value = 1; 
+    }
+
+    function deleteItem(id) {
+        if(confirm("Are you sure you want to delete this item?")) {
+            if (editId === id) resetFormState();
+            inventory = inventory.filter(item => item.id !== id);
+            saveInventory();
+            renderExpiryReport();
         }
-    );
-
-    function saveItem() {
-        const item = {
-            name: document.getElementById('prodName').value,
-            qty: document.getElementById('prodQty').value,
-            expiry: document.getElementById('prodExpiry').value || "No Date"
-        };
-        inventory.push(item);
-        localStorage.setItem('dco_data', JSON.stringify(inventory));
-        renderList();
     }
 
-    function renderList() {
-        const list = document.getElementById('inventoryList');
-        list.innerHTML = inventory.map(i => `<div class="inv-item"><span>${i.name}</span> <span>${i.qty}</span></div>`).join('');
+    function renderExpiryReport() {
+        reportContainer.innerHTML = '';
+
+        if (inventory.length === 0) {
+            reportContainer.innerHTML = '<p style="color: #666;">📭 Tracker is empty. Add short-dated products on the left.</p>';
+            return;
+        }
+
+        const grouped = {};
+        inventory.forEach(item => {
+            if (!grouped[item.expiry]) {
+                grouped[item.expiry] = [];
+            }
+            grouped[item.expiry].push(item);
+        });
+
+        const sortedMonths = Object.keys(grouped).sort();
+
+        sortedMonths.forEach(monthStr => {
+            const dateParts = monthStr.split('-');
+            if (dateParts.length !== 2) return;
+            
+            const year = dateParts[0];
+            const month = dateParts[1];
+            const dateObj = new Date(year, month - 1);
+            const formattedMonth = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            const section = document.createElement('div');
+            section.className = 'month-section';
+
+            let itemsHTML = '';
+            grouped[monthStr].forEach(item => {
+                itemsHTML += `
+                    <li class="product-item">
+                        <div class="product-info">
+                            <h4>${item.name}</h4>
+                        </div>
+                        <div class="product-meta">
+                            <span class="qty">Qty: ${item.qty}</span>
+                            <div class="action-btns">
+                                <button class="btn-edit" onclick="editItem('${item.id}')">Edit</button>
+                                <button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            });
+
+            section.innerHTML = `
+                <div class="month-header">
+                    <span>📅 ${formattedMonth}</span>
+                    <span style="font-size: 12px; opacity: 0.7;">(${grouped[monthStr].length} items)</span>
+                </div>
+                <ul class="product-list">
+                    ${itemsHTML}
+                </ul>
+            `;
+
+            reportContainer.appendChild(section);
+        });
     }
 
-    function clearInventory() {
-        inventory = [];
-        localStorage.removeItem('dco_data');
-        renderList();
-    }
-    
-    renderList();
+    loadInventory();
+    renderExpiryReport();
 </script>
+
 </body>
 </html>
